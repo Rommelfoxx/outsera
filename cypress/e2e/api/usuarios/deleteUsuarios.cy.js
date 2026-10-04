@@ -1,7 +1,8 @@
+import { UserService } from '../../../services/UserService'
 import { createUser, createUserAdmin } from '../../../factories/user.js'
 import { API_MESSAGES } from '../../../support/messages'
 
-const apiUrl = Cypress.expose('apiUrl')
+const userService = new UserService()
 
 describe('DELETE /usuarios', () => {
 
@@ -22,35 +23,32 @@ describe('DELETE /usuarios', () => {
                         .to.be.a('string')
                         .and.not.be.empty
 
-                    return cy.request({
-                        method: 'DELETE',
-                        url: `${apiUrl}/usuarios/${userId}`
-                    })
-                })
-                .then(({ status, body }) => {
+                    return userService.delete(userId)
+                        .then(({ status, body }) => {
 
-                    expect(status)
-                        .to.eq(200)
+                            expect(status)
+                                .to.eq(200)
 
-                    expect(body)
-                        .to.property(
-                            "message",
-                            API_MESSAGES.USER_DELETED
-                        )
-                    return cy.searchUserById(userId)
-                })
-                .then(({ status, body }) => {
+                            expect(body)
+                                .to.property(
+                                    "message",
+                                    API_MESSAGES.USER_DELETED
+                                )
+                            return cy.searchUserById(userId)
+                        })
+                        .then(({ status, body }) => {
 
-                    expect(status)
-                        .to.eq(200)
+                            expect(status)
+                                .to.eq(200)
 
-                    expect(body.quantidade)
-                        .to.eq(0)
+                            expect(body.quantidade)
+                                .to.eq(0)
 
-                    expect(body.usuarios)
-                        .to.be.an('array')
-                        .and.have.length(0)
+                            expect(body.usuarios)
+                                .to.be.an('array')
+                                .and.have.length(0)
 
+                        })
                 })
         })
 
@@ -67,10 +65,7 @@ describe('DELETE /usuarios', () => {
                         .to.be.a('string')
                         .and.not.be.empty
 
-                    return cy.request({
-                        method: 'DELETE',
-                        url: `${apiUrl}/usuarios/${userAdminId}`
-                    })
+                    return userService.delete(userAdminId)
                 })
                 .then(({ status, body }) => {
 
@@ -106,19 +101,17 @@ describe('DELETE /usuarios', () => {
 
             const unknownUserId = 'unknownUser123'
 
-            cy.request({
-                method: 'DELETE',
-                url: `${apiUrl}/usuarios/${unknownUserId}`
-            }).then((response) => {
+            return userService.delete(unknownUserId)
+                .then((response) => {
 
-                expect(response.status)
-                    .to.eq(200)
+                    expect(response.status)
+                        .to.eq(200)
 
-                expect(response.body).to.property(
-                    "message",
-                    API_MESSAGES.NO_RECORD_DELETED
-                )
-            })
+                    expect(response.body).to.property(
+                        "message",
+                        API_MESSAGES.NO_RECORD_DELETED
+                    )
+                })
         })
 
         it('Returns no deletion when deleting the same user twice', () => {

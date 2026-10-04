@@ -1,8 +1,7 @@
-
+import { UserService } from '../../../services/UserService'
 import { createUser, createUserInvalid } from '../../../factories/user.js'
 
-const apiUrl = Cypress.expose('apiUrl')
-
+const userService = new UserService()
 describe('GET /usuarios', () => {
     const user = createUser()
     const userInvalid = createUserInvalid()
@@ -21,88 +20,83 @@ describe('GET /usuarios', () => {
 
     context('Successful searches', () => {
         it('Returns all users', () => {
-            return cy.request({
-                method: 'GET',
-                url: `${apiUrl}/usuarios`
-            }).then(({ status, body }) => {
-                const { usuarios, quantidade } = body
+            userService.getAll()
+                .then(({ status, body }) => {
+                    const { usuarios, quantidade } = body
 
-                expect(status, 'list users status').to.eq(200)
+                    expect(status, 'list users status').to.eq(200)
 
-                expect(usuarios, 'returned users')
-                    .to.be.an('array')
-                    .and.not.be.empty
+                    expect(usuarios, 'returned users')
+                        .to.be.an('array')
+                        .and.not.be.empty
 
-                expect(quantidade, 'returned user count')
-                    .to.be.a('number')
-                    .to.eq(usuarios.length)
+                    expect(quantidade, 'returned user count')
+                        .to.be.a('number')
+                        .to.eq(usuarios.length)
 
-                usuarios.forEach((returnedUser) => {
-                    expect(returnedUser).to.include.all.keys(
-                        'nome',
-                        'email',
-                        'password',
-                        'administrador',
-                        '_id'
-                    )
-                    expect(returnedUser.nome)
-                        .to.be.a('string')
-                        .to.not.be.empty
+                    usuarios.forEach((returnedUser) => {
+                        expect(returnedUser).to.include.all.keys(
+                            'nome',
+                            'email',
+                            'password',
+                            'administrador',
+                            '_id'
+                        )
+                        expect(returnedUser.nome)
+                            .to.be.a('string')
+                            .to.not.be.empty
 
-                    expect(returnedUser.email)
-                        .to.be.a('string')
-                        .to.not.be.empty
+                        expect(returnedUser.email)
+                            .to.be.a('string')
+                            .to.not.be.empty
 
-                    expect(returnedUser.password)
-                        .to.be.a('string')
-                        .to.not.be.empty
+                        expect(returnedUser.password)
+                            .to.be.a('string')
+                            .to.not.be.empty
 
-                    expect(returnedUser.administrador)
-                        .to.be.a('string')
-                        .to.not.be.empty
+                        expect(returnedUser.administrador)
+                            .to.be.a('string')
+                            .to.not.be.empty
 
-                    expect(returnedUser._id)
-                        .to.be.a('string')
-                        .to.not.be.empty
+                        expect(returnedUser._id)
+                            .to.be.a('string')
+                            .to.not.be.empty
+                    })
                 })
-            })
         })
 
         it('Searches by name and email', () => {
 
-            return cy.request({
-                url: `${apiUrl}/usuarios`,
-                method: 'GET',
-                qs: {
-                    nome: user.nome,
-                    email: user.email
-                }
-            }).then(({ status, body }) => {
-                const { quantidade, usuarios } = body
-
-                expect(usuarios)
-                    .to.be.an('array')
-                    .and.not.be.empty
-
-                expect(quantidade)
-                    .to.be.a('number')
-                    .to.eq(usuarios.length)
-
-                expect(status).to.eq(200)
-
-                const returnedResult = usuarios.find(
-                    ({ _id }) => _id === user._id
-                )
-                expect(returnedResult).to.exist
-
-                expect(returnedResult).to.include({
-                    nome: user.nome,
-                    email: user.email,
-                    password: user.password,
-                    administrador: user.administrador,
-                    _id: user._id
-                })
+            return userService.getAll({
+                nome: user.nome,
+                email: user.email
             })
+                .then(({ status, body }) => {
+                    const { quantidade, usuarios } = body
+
+                    expect(usuarios)
+                        .to.be.an('array')
+                        .and.not.be.empty
+
+                    expect(quantidade)
+                        .to.be.a('number')
+                        .to.eq(usuarios.length)
+
+                    expect(status).to.eq(200)
+
+                    const returnedResult = usuarios.find(
+                        ({ _id }) => _id === user._id
+                    )
+                    expect(returnedResult).to.exist
+
+                    expect(returnedResult).to.include({
+                        nome: user.nome,
+                        email: user.email,
+                        password: user.password,
+                        administrador: user.administrador,
+                        _id: user._id
+                    })
+                })
 
         })
 
@@ -120,53 +114,50 @@ describe('GET /usuarios', () => {
             it(`Retrieves a user by ${field}`, () => {
                 const expectedValue = value()
 
-                return cy.request({
-                    method: 'GET',
-                    url: `${apiUrl}/usuarios`,
-                    qs: {
-                        [field]: expectedValue
-                    }
-                }).then(({ status, body }) => {
-                    const { quantidade, usuarios } = body
+                return userService.getAll({
+                    [field]: expectedValue
+                })
+                    .then(({ status, body }) => {
+                        const { quantidade, usuarios } = body
 
-                    expect(status).to.eq(200)
+                        expect(status).to.eq(200)
 
-                    expect(usuarios)
-                        .to.be.an('array')
-                        .and.not.be.empty
+                        expect(usuarios)
+                            .to.be.an('array')
+                            .and.not.be.empty
 
-                    expect(quantidade)
-                        .to.be.an('number')
-                        .to.eq(usuarios.length)
+                        expect(quantidade)
+                            .to.be.an('number')
+                            .to.eq(usuarios.length)
 
 
-                    usuarios.forEach((returnedValue) => {
-                        expect(returnedValue[field])
-                            .to.eq(expectedValue)
-                    })
-
-                    const createdUser = usuarios.find(
-                        ({ _id }) => _id === user._id
-                    )
-
-                    expect(
-                        createdUser,
-                        'The created user should appear in the results '
-                    ).to.exist
-
-                    expect(createdUser)
-                        .to.include({
-                            nome: user.nome,
-                            email: user.email,
-                            password: user.password,
-                            administrador: user.administrador
+                        usuarios.forEach((returnedValue) => {
+                            expect(returnedValue[field])
+                                .to.eq(expectedValue)
                         })
 
-                    if (field === '_id') {
-                        expect(quantidade)
-                            .to.eq(1)
-                    }
-                })
+                        const createdUser = usuarios.find(
+                            ({ _id }) => _id === user._id
+                        )
+
+                        expect(
+                            createdUser,
+                            'The created user should appear in the results '
+                        ).to.exist
+
+                        expect(createdUser)
+                            .to.include({
+                                nome: user.nome,
+                                email: user.email,
+                                password: user.password,
+                                administrador: user.administrador
+                            })
+
+                        if (field === '_id') {
+                            expect(quantidade)
+                                .to.eq(1)
+                        }
+                    })
             })
         })
     })
@@ -183,21 +174,18 @@ describe('GET /usuarios', () => {
             it(`Returns no users when searching by ${field}`, () => {
                 const expectedValue = value()
 
-                return cy.request({
-                    url: `${apiUrl}/usuarios`,
-                    method: 'GET',
-                    qs: {
-                        [field]: expectedValue
-                    }
-                }).then(({ status, body }) => {
-                    const { quantidade, usuarios } = body
-                    expect(status).to.eq(200)
-
-                    expect(quantidade).to.eq(0)
-                    expect(usuarios)
-                        .to.be.an('array')
-                        .and.to.be.empty
+                return userService.getAll({
+                    [field]: expectedValue
                 })
+                    .then(({ status, body }) => {
+                        const { quantidade, usuarios } = body
+                        expect(status).to.eq(200)
+
+                        expect(quantidade).to.eq(0)
+                        expect(usuarios)
+                            .to.be.an('array')
+                            .and.to.be.empty
+                    })
             })
         })
     })
