@@ -7,7 +7,7 @@ module.exports = defineConfig({
   },
   viewportHeight: 1440,
   viewportWidth: 900,
-  report: 'mochawesome',
+  reporter: 'mochawesome',
   reporterOptions: {
     reportDir: 'cypress/reports/mocha/.jsons',
     overwrite: false,
@@ -19,7 +19,7 @@ module.exports = defineConfig({
   },
   e2e: {
     specPattern: 'cypress/e2e/**/*.cy.js',
-    baseURL: 'https://front.serverest.dev/'
+    baseUrl: 'https://front.serverest.dev/'
   },
   setupNodeEvents(on, config) {
     return config

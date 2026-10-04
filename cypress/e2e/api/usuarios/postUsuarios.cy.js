@@ -3,7 +3,7 @@ import { createUser, createUserAdmin } from '../../../factories/user.js'
 const apiUrl = Cypress.expose('apiUrl')
 
 
-describe('Users API POST', () => {
+describe('POST /usuarios', () => {
     let user
     let userAdmin
 

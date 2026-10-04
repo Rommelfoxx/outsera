@@ -33,6 +33,17 @@ const createUserAdmin = (overrides = {}) => {
 
 }
 
+const updatedUser = (overrides = {}) => {
+
+    return {
+        nome: faker.person.fullName(),
+        email: faker.internet.email(),
+        password: faker.internet.password(),
+        administrador: 'true',
+        ...overrides
+    }
+}
+
 export default {
-    createUser, createUserAdmin, createUserInvalid
+    createUser, createUserAdmin, createUserInvalid, updatedUser
 };
