@@ -1,7 +1,8 @@
 import { createUser, createUserAdmin } from '../../../factories/user.js'
+import { API_MESSAGES } from '../../../support/messages'
+import { UserService } from '../../../services/UserService'
 
-const apiUrl = Cypress.expose('apiUrl')
-
+const userService = new UserService()
 
 describe('POST /usuarios', () => {
     let user
@@ -13,16 +14,7 @@ describe('POST /usuarios', () => {
     })
     context('POST /usuarios', () => {
         it('Create a new user', () => {
-            cy.request({
-                method: 'POST',
-                url: `${apiUrl}/usuarios`,
-                body: {
-                    nome: user.nome,
-                    email: user.email,
-                    password: user.password,
-                    administrador: user.administrador
-                }
-            })
+            userService.create(user)
                 .then(({ status, body }) => {
                     user._id = body._id
 
@@ -30,17 +22,13 @@ describe('POST /usuarios', () => {
                     expect(body)
                         .to.have.property(
                             "message",
-                            "Cadastro realizado com sucesso"
+                            API_MESSAGES.USER_CREATED
                         )
                     expect(body._id)
                         .to.be.a("string")
                         .and.not.be.empty
 
-                    return cy.request({
-                        method: 'GET',
-                        url: `${apiUrl}/usuarios`,
-                        qs: { _id: user._id }
-                    })
+                    userService.getById(body._id)
                         .then(({ status, body }) => {
 
                             expect(status).to.eq(200)
@@ -60,16 +48,7 @@ describe('POST /usuarios', () => {
         })
 
         it('Create a new admin user', () => {
-            cy.request({
-                method: 'POST',
-                url: `${apiUrl}/usuarios`,
-                body: {
-                    nome: userAdmin.nome,
-                    email: userAdmin.email,
-                    password: userAdmin.password,
-                    administrador: userAdmin.administrador
-                }
-            })
+            userService.create(userAdmin)
                 .then(({ status, body }) => {
                     userAdmin._id = body._id
 
@@ -77,17 +56,13 @@ describe('POST /usuarios', () => {
                     expect(body)
                         .to.have.property(
                             "message",
-                            "Cadastro realizado com sucesso"
+                            API_MESSAGES.USER_CREATED
                         )
                     expect(body._id)
                         .to.be.a("string")
                         .and.not.be.empty
 
-                    return cy.request({
-                        method: 'GET',
-                        url: `${apiUrl}/usuarios`,
-                        qs: { _id: userAdmin._id }
-                    })
+                    userService.getById(body._id)
                         .then(({ status, body }) => {
 
                             expect(status).to.eq(200)
@@ -110,51 +85,39 @@ describe('POST /usuarios', () => {
     context('Error tests', () => {
         it('rejects an email that is already registered', () => {
 
-            cy.createUser(user).then(({ status, body }) => {
-                user._id = body._id
+            cy.createUser(user).then(({ status }) => {
                 expect(status, 'setup registration status').to.eq(201)
             })
 
-            cy.request({
-                method: 'POST',
-                url: `${apiUrl}/usuarios`,
-                body: {
-                    nome: user.nome,
-                    email: user.email,
-                    password: user.password,
-                    administrador: user.administrador
-                },
+            return userService.create(user, {
                 failOnStatusCode: false
-            }).then(({ status, body }) => {
-
-                expect(status).to.eq(400)
-
-                expect(body)
-                    .to.have.property(
-                        "message",
-                        "Este email já está sendo usado"
-                    )
             })
+                .then(({ status, body }) => {
+
+                    expect(status).to.eq(400)
+
+                    expect(body)
+                        .to.have.property(
+                            "message",
+                            API_MESSAGES.EMAIL_ALREADY_USED
+                        )
+                })
         })
         const mandatoryFields = [
             {
-                field: 'nome',
-                message: 'nome é obrigatório'
+                field: 'nome'
             },
             {
-                field: 'email',
-                message: 'email é obrigatório'
+                field: 'email'
             },
             {
-                field: 'password',
-                message: 'password é obrigatório'
+                field: 'password'
             },
             {
-                field: 'administrador',
-                message: 'administrador é obrigatório'
+                field: 'administrador'
             }
         ]
-        mandatoryFields.forEach(({ field, message }) => {
+        mandatoryFields.forEach(({ field }) => {
             it(`rejects registration when ${field} is missing`, () => {
 
                 const payload = {
@@ -165,11 +128,8 @@ describe('POST /usuarios', () => {
                 }
                 delete payload[field]
 
-                cy.request({
-                    method: 'POST',
-                    url: `${apiUrl}/usuarios`,
-                    failOnStatusCode: false,
-                    body: payload
+                return userService.create(payload, {
+                    failOnStatusCode: false
                 }).then(({ status, body }) => {
                     if (status === 201 && body._id) {
                         user._id = body._id
@@ -180,7 +140,7 @@ describe('POST /usuarios', () => {
                     expect(body)
                         .to.have.property(
                             field,
-                            message
+                            API_MESSAGES.FIELD_REQUIRED(field)
                         )
                     expect(body).to.have.all.keys(field)
                 })

@@ -1,10 +1,10 @@
-const BASE_URL = Cypress.expose('apiUrl')
+const apiUrl = Cypress.expose('apiUrl')
 
 //Log in through the API
 Cypress.Commands.add('loginApi', (email, password) => {
     return cy.request({
         method: 'POST',
-        url: `${BASE_URL}/login`,
+        url: `${apiUrl}/login`,
         body: {
             email,
             password
@@ -21,7 +21,7 @@ Cypress.Commands.add('loginApi', (email, password) => {
 Cypress.Commands.add('createUser', (user) => {
     return cy.request({
         method: 'POST',
-        url: `${BASE_URL}/usuarios`,
+        url: `${apiUrl}/usuarios`,
         body: {
             nome: user.nome,
             email: user.email,
@@ -34,7 +34,7 @@ Cypress.Commands.add('createUser', (user) => {
 Cypress.Commands.add('deleteUserById', (id) => {
     return cy.request({
         method: 'DELETE',
-        url: `${BASE_URL}/usuarios/${id}`,
+        url: `${apiUrl}/usuarios/${id}`,
     })
 })
 
@@ -42,7 +42,7 @@ Cypress.Commands.add('deleteUserById', (id) => {
 Cypress.Commands.add('searchUserById', (userId) => {
     return cy.request({
         method: 'GET',
-        url: `${BASE_URL}/usuarios`,
+        url: `${apiUrl}/usuarios`,
         qs: {
             _id: userId
         }

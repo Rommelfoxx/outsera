@@ -1,6 +1,6 @@
 import { faker } from "@faker-js/faker";
 
-const createUser = (overrides = {}) => {
+export const createUser = (overrides = {}) => {
     return {
         nome: faker.person.firstName(),
         email: faker.internet.email(),
@@ -10,7 +10,7 @@ const createUser = (overrides = {}) => {
     }
 }
 
-const createUserInvalid = (overrides = {}) => {
+export const createUserInvalid = (overrides = {}) => {
     return {
         _id: '6666666666777777',
         nome: 'InvalidUser9999',
@@ -21,7 +21,7 @@ const createUserInvalid = (overrides = {}) => {
     }
 }
 
-const createUserAdmin = (overrides = {}) => {
+export const createUserAdmin = (overrides = {}) => {
 
     return {
         nome: faker.person.firstName(),
@@ -33,7 +33,7 @@ const createUserAdmin = (overrides = {}) => {
 
 }
 
-const updatedUser = (overrides = {}) => {
+export const updatedUser = (overrides = {}) => {
 
     return {
         nome: faker.person.fullName(),
@@ -44,6 +44,3 @@ const updatedUser = (overrides = {}) => {
     }
 }
 
-export default {
-    createUser, createUserAdmin, createUserInvalid, updatedUser
-};

@@ -19,11 +19,11 @@ module.exports = defineConfig({
   },
   e2e: {
     specPattern: 'cypress/e2e/**/*.cy.js',
-    baseUrl: 'https://front.serverest.dev/'
+    baseUrl: 'https://front.serverest.dev/',
+    setupNodeEvents(on, config) {
+      return config
+    },
   },
-  setupNodeEvents(on, config) {
-    return config
-    // implement node event listeners here
-  },
+
 
 });

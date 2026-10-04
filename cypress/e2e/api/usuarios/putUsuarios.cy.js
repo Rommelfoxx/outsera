@@ -1,5 +1,5 @@
-
 import { createUser, updatedUser } from '../../../factories/user.js'
+import { API_MESSAGES } from '../../../support/messages'
 
 const apiUrl = Cypress.expose('apiUrl')
 describe('PUT /usuarios', () => {
@@ -35,7 +35,7 @@ describe('PUT /usuarios', () => {
 
                 expect(body).to.have.property(
                     'message',
-                    'Registro alterado com sucesso'
+                    API_MESSAGES.USER_UPDATED
                 )
 
                 return cy.request({

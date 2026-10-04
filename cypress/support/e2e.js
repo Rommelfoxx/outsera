@@ -16,3 +16,10 @@
 // Import commands.js using ES2015 syntax:
 import './commands'
 import './commandsApi'
+
+
+Cypress.on('log:added', (attrs) => {
+    if (attrs.name === 'request') {
+        console.log('Request log added:', attrs)
+    }
+})

@@ -1,4 +1,5 @@
 import { createUser, createUserAdmin } from '../../../factories/user.js'
+import { API_MESSAGES } from '../../../support/messages'
 
 const apiUrl = Cypress.expose('apiUrl')
 
@@ -34,7 +35,7 @@ describe('DELETE /usuarios', () => {
                     expect(body)
                         .to.property(
                             "message",
-                            "Registro excluído com sucesso"
+                            API_MESSAGES.USER_DELETED
                         )
                     return cy.searchUserById(userId)
                 })
@@ -79,7 +80,7 @@ describe('DELETE /usuarios', () => {
                     expect(body)
                         .to.property(
                             "message",
-                            "Registro excluído com sucesso"
+                            API_MESSAGES.USER_DELETED
                         )
                     return cy.searchUserById(userAdminId)
                 })
@@ -115,7 +116,7 @@ describe('DELETE /usuarios', () => {
 
                 expect(response.body).to.property(
                     "message",
-                    "Nenhum registro excluído"
+                    API_MESSAGES.NO_RECORD_DELETED
                 )
             })
         })
@@ -137,14 +138,14 @@ describe('DELETE /usuarios', () => {
             })
                 .then(({ status, body }) => {
                     expect(status, 'first deletion status').to.eq(200)
-                    expect(body.message).to.eq('Registro excluído com sucesso')
+                    expect(body.message).to.eq(API_MESSAGES.USER_DELETED)
 
                     return cy.deleteUserById(userId)
 
                 })
                 .then(({ status, body }) => {
                     expect(status, 'second deletion status').to.eq(200)
-                    expect(body.message).to.eq('Nenhum registro excluído')
+                    expect(body.message).to.eq(API_MESSAGES.NO_RECORD_DELETED)
                 })
         })
 
