@@ -8,10 +8,8 @@ on:
 
 env:
   NODE_VERSION: '24'
-  NODE_OPTIONS: '--unhandled-rejections=warn'
 
 jobs:
-  # ─── Testes de API ────────────────────────────────────────────────────────────
   test-api:
     name: Testes de API
     runs-on: ubuntu-latest
@@ -20,11 +18,11 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: npm
 
       - name: Cache binário do Cypress
         uses: actions/cache@v4
@@ -35,64 +33,139 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      - name: Limpar relatórios anteriores
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+
+          fs.rmSync('cypress/reports/mocha', {
+            recursive: true,
+            force: true,
+          })
+
+          fs.rmSync('cypress/reports/html', {
+            recursive: true,
+            force: true,
+          })
+
+          fs.mkdirSync('cypress/reports/mocha/.jsons', {
+            recursive: true,
+          })
+          NODE
+
       - name: Executar testes de API (usuarios)
-        run: npx cypress run --browser chrome --headless --spec "cypress/e2e/api/usuarios"
+        run: |
+          npx cypress run \
+            --browser chrome \
+            --headless \
+            --spec "cypress/e2e/api/usuarios/**/*.cy.js"
 
       - name: Mesclar relatórios JSON
         if: always()
+        shell: bash
         run: |
-          if ls cypress/reports/mocha/.jsons/*.json 1> /dev/null 2>&1; then
+          shopt -s nullglob
+          reports=(cypress/reports/mocha/.jsons/*.json)
+
+          if (( ${#reports[@]} > 0 )); then
             npm run report:merge
           else
             echo "Nenhum relatório JSON encontrado para mesclar."
           fi
+
       - name: Gerar relatório HTML
         if: always()
+        shell: bash
         run: |
-          if [ -f cypress/reports/mocha/merged.json ]; then
+          if [ -s cypress/reports/mocha/merged.json ]; then
             npm run report:generate
           else
-            echo "merged.json não encontrado, pulando geração de HTML."
+            echo "Relatório mesclado indisponível. HTML não gerado."
           fi
+
       - name: Upload relatório Mochawesome
-        uses: actions/upload-artifact@v4
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: mochawesome-report-api
           path: cypress/reports/html/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload relatórios JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mochawesome-json-api
+          path: cypress/reports/mocha/
+          include-hidden-files: true
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Publicar resumo do relatório no GitHub Actions
         if: always()
         run: |
-          echo "## 📊 Mochawesome Test Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Suite | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          node -e "
-          const fs = require('fs');
-          const report = JSON.parse(fs.readFileSync('cypress/reports/mocha/merged.json'));
-          const { passes, failures, pending, duration } = report.stats;
-          const total = passes + failures + pending;
-          const status = failures === 0 ? '✅ Passed' : '❌ Failed';
-          console.log('| Total | ' + total + ' |');
-          console.log('| ✅ Passed | ' + passes + ' |');
-          console.log('| ❌ Failed | ' + failures + ' |');
-          console.log('| ⏱ Duration | ' + (duration / 1000).toFixed(1) + 's |');
-          console.log('| Status | ' + status + ' |');
-          " >> $GITHUB_STEP_SUMMARY
+          node <<'NODE'
+          const fs = require('fs')
+
+          const reportPath = 'cypress/reports/mocha/merged.json'
+          const summaryPath = process.env.GITHUB_STEP_SUMMARY
+
+          if (
+            !fs.existsSync(reportPath) ||
+            fs.statSync(reportPath).size === 0
+          ) {
+            fs.appendFileSync(
+              summaryPath,
+              '## 📊 Mochawesome Test Report\n\n' +
+              '⚠️ Relatório indisponível. Confira a execução dos testes e a mesclagem dos JSONs.\n'
+            )
+
+            process.exit(0)
+          }
+
+          const report = JSON.parse(
+            fs.readFileSync(reportPath, 'utf8')
+          )
+
+          const {
+            tests,
+            passes,
+            failures,
+            pending,
+            skipped,
+            duration,
+          } = report.stats
+
+          const summary = [
+            '## 📊 Mochawesome Test Report',
+            '',
+            `Total: ${tests}`,
+            `✅ Aprovados: ${passes}`,
+            `❌ Falhas: ${failures}`,
+            `⏸ Pendentes: ${pending}`,
+            `⏭ Ignorados: ${skipped ?? 0}`,
+            `⏱ Duração: ${(duration / 1000).toFixed(1)}s`,
+            '',
+          ].join('\n')
+
+          fs.appendFileSync(summaryPath, summary)
+          NODE
+
       - name: Upload screenshots (somente em falha)
-        uses: actions/upload-artifact@v4
         if: failure()
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots-api
           path: cypress/screenshots/
+          if-no-files-found: ignore
           retention-days: 7
 
       - name: Upload vídeos (somente em falha)
-        uses: actions/upload-artifact@v4
         if: failure()
+        uses: actions/upload-artifact@v4
         with:
           name: videos-api
           path: cypress/videos/
+          if-no-files-found: ignore
           retention-days: 7
