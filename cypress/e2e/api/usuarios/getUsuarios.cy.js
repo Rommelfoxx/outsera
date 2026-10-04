@@ -3,22 +3,23 @@ import { createUser, createUserInvalid } from '../../../factories/user.js'
 
 const apiUrl = Cypress.expose('apiUrl')
 
-describe('api usuarios tests GET', () => {
+describe('GET /usuarios', () => {
     const user = createUser()
     const userInvalid = createUserInvalid()
 
     before(() => {
-
-        return cy.criarUsuario(user)
+        return cy.createUser(user)
             .then(({ status, body }) => {
-                expect(status).to.eq(201)
+                expect(status, 'create user status').to.eq(201)
+                expect(body._id, 'created user ID')
+                    .to.be.a('string')
+                    .and.not.be.empty
 
                 user._id = body._id
             })
     })
 
     context('Successful searches', () => {
-
         it('Returns all users', () => {
             return cy.request({
                 method: 'GET',
@@ -26,13 +27,13 @@ describe('api usuarios tests GET', () => {
             }).then(({ status, body }) => {
                 const { usuarios, quantidade } = body
 
-                expect(status).to.eq(200)
+                expect(status, 'list users status').to.eq(200)
 
-                expect(usuarios)
+                expect(usuarios, 'returned users')
                     .to.be.an('array')
                     .and.not.be.empty
 
-                expect(quantidade)
+                expect(quantidade, 'returned user count')
                     .to.be.a('number')
                     .to.eq(usuarios.length)
 
@@ -92,7 +93,6 @@ describe('api usuarios tests GET', () => {
                 const returnedResult = usuarios.find(
                     ({ _id }) => _id === user._id
                 )
-
                 expect(returnedResult).to.exist
 
                 expect(returnedResult).to.include({
@@ -170,7 +170,7 @@ describe('api usuarios tests GET', () => {
             })
         })
     })
-    context('Search with nonExistent values', () => {
+    context('Searches with nonexistent values', () => {
 
         const filters = [
             { field: '_id', value: () => userInvalid._id },
@@ -180,7 +180,7 @@ describe('api usuarios tests GET', () => {
         ]
 
         filters.forEach(({ field, value }) => {
-            it(`Return no User when search b y ${field}`, () => {
+            it(`Returns no users when searching by ${field}`, () => {
                 const expectedValue = value()
 
                 return cy.request({
@@ -206,5 +206,8 @@ describe('api usuarios tests GET', () => {
             return
         }
         return cy.deleteUserById(user._id)
+            .then(({ status }) => {
+                expect(status, 'cleanup status').to.eq(200)
+            })
     })
 })

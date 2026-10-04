@@ -1,6 +1,6 @@
 const BASE_URL = Cypress.expose('apiUrl')
 
-//login in the application
+//Log in through the API
 Cypress.Commands.add('loginApi', (email, password) => {
     return cy.request({
         method: 'POST',
@@ -9,13 +9,16 @@ Cypress.Commands.add('loginApi', (email, password) => {
             email,
             password
         }
-    }).then((response) => {
+    }).then(({ status, body }) => {
+        expect(status, 'login status').to.eq(200)
+        expect(body.authorization, 'authorization token')
+            .to.be.a('string')
+            .and.not.be.empty
 
-        return response.body.authorization
+        return body.authorization
     })
 })
-Cypress.Commands.add('criarUsuario', (user) => {
-
+Cypress.Commands.add('createUser', (user) => {
     return cy.request({
         method: 'POST',
         url: `${BASE_URL}/usuarios`,
@@ -25,23 +28,17 @@ Cypress.Commands.add('criarUsuario', (user) => {
             password: user.password,
             administrador: user.administrador
         }
-    }).then((response) => {
-
-        return response
     })
 })
-//Apagar usuario informando nome 
+//Delete a user by ID
 Cypress.Commands.add('deleteUserById', (id) => {
-
     return cy.request({
         method: 'DELETE',
         url: `${BASE_URL}/usuarios/${id}`,
-        failOnStatusCode: false
     })
 })
 
-//Consultar usuario informando nome 
-
+//Search for a user by ID
 Cypress.Commands.add('searchUserById', (userId) => {
     return cy.request({
         method: 'GET',
@@ -49,9 +46,6 @@ Cypress.Commands.add('searchUserById', (userId) => {
         qs: {
             _id: userId
         }
-    }).then((response) => {
-
-        return response
     })
 })
 
