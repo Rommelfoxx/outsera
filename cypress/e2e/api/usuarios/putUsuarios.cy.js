@@ -2,9 +2,9 @@ import { UserService } from '../../../services/UserService'
 import { createUser, updatedUser } from '../../../factories/user.js'
 import { expectSuccessfulCreation, expectSuccessfulUpdate } from '../../../support/assertions'
 
-const userService = new UserService()
-describe('PUT /usuarios', () => {
 
+describe('PUT /usuarios', () => {
+    const userService = new UserService()
     let userId
     beforeEach(() => {
         userId = undefined

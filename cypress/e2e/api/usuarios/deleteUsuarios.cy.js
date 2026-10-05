@@ -1,9 +1,10 @@
 import { UserService } from '../../../services/UserService'
 import { createUser, createUserAdmin } from '../../../factories/user.js'
 import { expectSuccessfulCreation, expectSuccessfulDeletion, expectfailfulSearch, expectfailfulDeletion } from '../../../support/assertions'
-const userService = new UserService()
 
 describe('DELETE /usuarios', () => {
+
+    const userService = new UserService()
 
     context('Successful deletions', () => {
 

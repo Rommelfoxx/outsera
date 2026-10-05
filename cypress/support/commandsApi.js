@@ -3,12 +3,11 @@ import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import userSchema from '../schemas/userSchema.json'
 
+const apiUrl = Cypress.expose('apiUrl')
 
 const ajv = new Ajv()
-const apiUrl = Cypress.expose('apiUrl')
-const validateUser = ajv.compile(userSchema)
-
 addFormats(ajv)
+const validateUser = ajv.compile(userSchema)
 
 Cypress.Commands.add('validateUserSchema', (user) => {
     const valid = validateUser(user)
