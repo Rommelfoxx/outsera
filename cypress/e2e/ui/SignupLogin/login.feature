@@ -14,6 +14,14 @@ Feature: Login on the application
     Then I should be redirected to the home page
     And I should see "Serverest Store"
 
+  @authentication @smoke @critical
+  Scenario: Login successfully with registered Admin user
+    Given I have a registered AdminUser
+    When I fill the login form with valid Admin credentials
+    And I click the login button
+    Then I should be redirected to the admin home page
+    And I should see "Este é seu sistema para administrar seu ecommerce."
+
   @error-handling
   Scenario: Login error with incorrect password
     Given I have a registered user

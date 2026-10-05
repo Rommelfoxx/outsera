@@ -1,3 +1,4 @@
+import { ROUTES } from '../support/constants'
 
 export class LoginPage {
 
@@ -9,25 +10,28 @@ export class LoginPage {
     //Actions 
 
     visit() {
-        cy.visit('/login')
+        cy.visit(ROUTES.LOGIN)
         cy.contains('Login').should('be.visible')
         return this
     }
 
-    login({ email, password }) {
+    fillCredentials({ email, password }) {
+
+        this.emailInput.clear()
         if (email) {
             this.emailInput.type(email)
         }
+
+        this.passwordInput.clear()
+
         if (password) {
-            this.passwordInput.type(password)
+            this.passwordInput.type(password, { log: false })
         }
-        this.loginButton.click()
-        return this
     }
 
     //Assertions
     shouldBeOnLoginPage() {
-        cy.location('pathname').should('eq', '/login')
+        cy.location('pathname').should('eq', ROUTES.LOGIN)
         return this
     }
 }

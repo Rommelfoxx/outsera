@@ -9,6 +9,7 @@ Feature: Search for products
     And I am logged in as a regular user
     And I am on the home page
 
+  @authentication @smoke @critical
   Scenario: Search for a product with success
     When I search for the created product
     And I click the search button
@@ -17,6 +18,7 @@ Feature: Search for products
     And the product should display the correct price
     And I should see the "Adicionar a lista" button
 
+  @error-handling
   Scenario: Search for a non-existent product
     When I search for "Test"
     And I click the search button

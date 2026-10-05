@@ -1,49 +1,44 @@
 import { Given, When, Then, Before, After } from '@badeball/cypress-cucumber-preprocessor'
 import { createUser, createUserAdmin } from '../../../../factories/user'
 import productFactory from '../../../../factories/product'
+import { HomePage } from '../../../../pages/HomePage'
 
 const { createProduct } = productFactory
-
-let userAdmin
-let user
-let product
-let productID
+const homePage = new HomePage()
 
 Before(function () {
-  userAdmin = createUserAdmin()
-  user = createUser()
-  product = createProduct()
+  this.userAdmin = createUserAdmin()
+  this.user = createUser()
+  this.product = createProduct()
+  this.productID = null
 })
 
 Given('I have an admin user and a regular user registered', function () {
-  cy.criarUsuario(userAdmin)
-  cy.criarUsuario(user)
+  cy.createUser(this.userAdmin)
+  cy.createUser(this.user)
 })
 
 Given('I have a product created by the admin', function () {
   cy.criarProduto(
-    userAdmin.email,
-    userAdmin.password,
-    product
+    this.userAdmin.email,
+    this.userAdmin.password,
+    this.product
   ).then((response) => {
-    productID = response.body._id
+    this.productID = response.body._id
   })
 })
 
 Given('I am logged in as a regular user', function () {
-  cy.loginSession(user)
+  cy.loginSession(this.user)
 })
 
 Given('I am on the home page', function () {
-  cy.visit('/home')
-  cy.contains('Serverest Store').should('exist')
+  homePage.visit()
 })
 
 When('I search for the created product', function () {
   cy.intercept('GET', 'https://serverest.dev/produtos*').as('consulta')
-  cy.get('[data-testid="pesquisar"]')
-    .should('be.enabled')
-    .type(product.nome)
+  homePage.searchForProduct(this.product.nome)
 })
 
 When('I search for {string}', function (searchTerm) {
@@ -51,52 +46,47 @@ When('I search for {string}', function (searchTerm) {
     fixture: 'productTest.json'
   }).as('consulta')
 
-  cy.get('[data-testid="pesquisar"]')
-    .should('be.enabled')
-    .type(searchTerm)
+  homePage.searchForProduct(searchTerm)
 })
 
 When('I click the search button', function () {
-  cy.get('[data-testid="botaoPesquisar"]').click()
+  homePage.clickSearchButton()
   cy.wait('@consulta')
 })
 
 Then('I should see the product in the results', function () {
-  cy.get('[data-testid="product-detail-link"]').should('exist')
+  homePage.shouldSeeProductInResults()
 })
 
 Then('the product should display the correct name', function () {
-  cy.get('[data-testid="product-detail-link"]')
-    .parent()
-    .find('.card-title')
-    .should('have.text', product.nome)
+  homePage.shouldSeeProductName(this.product.nome)
 })
 
 Then('the product should display the correct price', function () {
-  cy.get('[data-testid="product-detail-link"]')
-    .parent()
-    .find('[class="card-subtitle mb-2 text-muted"]')
-    .should('have.text', '$ ' + product.preco)
+  homePage.shouldSeeProductPrice(this.product.preco)
 })
 
 Then('I should see the {string} button', function (buttonText) {
-  cy.get('[data-testid="adicionarNaLista"]')
-    .should('be.visible')
-    .should('have.text', buttonText)
+  homePage.shouldSeeButton(buttonText)
 })
 
 Then('I should see the message {string}', function (message) {
-  cy.contains(message).should('be.visible')
+  homePage.shouldSeeMessage(message)
 })
 
 After(function () {
-  if (productID) {
-    cy.excluirProduto(userAdmin.email, userAdmin.password, productID)
+  // CRITICAL: Delete product FIRST before deleting admin user
+  // Product deletion requires admin authentication
+  if (this.productID && this.userAdmin?.email && this.userAdmin?.password) {
+    cy.excluirProduto(this.userAdmin.email, this.userAdmin.password, this.productID)
   }
-  if (user.nome) {
-    cy.apagarUsuario(user.nome)
+
+  // Now delete users (after product is deleted)
+  if (this.user?.nome) {
+    cy.apagarUsuario(this.user.nome)
   }
-  if (userAdmin.nome) {
-    cy.apagarUsuario(userAdmin.nome)
+  if (this.userAdmin?.nome) {
+    cy.apagarUsuario(this.userAdmin.nome)
   }
 })
+

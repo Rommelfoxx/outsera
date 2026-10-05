@@ -1,5 +1,5 @@
 import { Given, When, Then, Before, After } from '@badeball/cypress-cucumber-preprocessor'
-import { createUser } from '../../../../factories/user'
+import { createUser, createUserAdmin } from '../../../../factories/user'
 import { LoginPage } from '../../../../pages/LoginPage'
 import { setupTestData } from '../../../../support/testSetup'
 import { expectSuccessfulCreation, expectSuccessfulDeletion } from '../../../../support/assertions'
@@ -8,6 +8,7 @@ const loginPage = new LoginPage()
 
 Before(function () {
   this.user = createUser()
+  this.userAdmin = createUserAdmin()
 })
 
 Given('I am on the login page', function () {
@@ -22,12 +23,24 @@ Given('I have a registered user', function () {
     })
 })
 
+Given('I have a registered AdminUser', function () {
+  return setupTestData.createUserViaAPI(this.userAdmin)
+    .then((response) => {
+      this.user._id = expectSuccessfulCreation(response)
+    })
+})
+
 When('I fill the login form with valid credentials', function () {
   loginPage.emailInput.clear()
   loginPage.passwordInput.clear()
-  loginPage.login({ email: this.user.email, password: this.user.password })
+  loginPage.fillCredentials({ email: this.user.email, password: this.user.password })
 })
 
+When('I fill the login form with valid Admin credentials', function () {
+  loginPage.emailInput.clear()
+  loginPage.passwordInput.clear()
+  loginPage.fillCredentials({ email: this.userAdmin.email, password: this.userAdmin.password })
+})
 When('I fill the email with valid email', function () {
   loginPage.emailInput.clear()
   loginPage.emailInput.type(this.user.email)

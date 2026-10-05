@@ -1,11 +1,11 @@
 # 🧪 Outsera – Cypress Test Automation
 
 [![CI Status](https://github.com/Rommelfoxx/outsera/workflows/ServeRest%20QA%20CI/badge.svg)](https://github.com/Rommelfoxx/outsera/actions)
-[![Tests](https://img.shields.io/badge/tests-23%20passing-success)](https://github.com/Rommelfoxx/outsera)
+[![Tests](https://img.shields.io/badge/tests-35%20passing-success)](https://github.com/Rommelfoxx/outsera)
 [![Cypress](https://img.shields.io/badge/cypress-16.1.1-brightgreen)](https://www.cypress.io/)
 [![Node](https://img.shields.io/badge/node-24-blue)](https://nodejs.org/)
 
-Professional API test automation framework built with [Cypress](https://www.cypress.io/) for the **ServeRest** demo application.
+Professional **API & UI test automation framework** built with [Cypress](https://www.cypress.io/) and [Cucumber](https://cucumber.io/) for the **ServeRest** demo application.
 
 **Target Application:**
 - 🔗 REST API: https://serverest.dev
@@ -15,10 +15,12 @@ Professional API test automation framework built with [Cypress](https://www.cypr
 
 ## 📊 Project Status
 
-- ✅ **23/23 tests passing**
+- ✅ **35/35 tests passing** (23 API + 12 UI)
 - ✅ **100% ESLint compliance**
 - ✅ **CI/CD integrated** with GitHub Actions
-- ✅ **Service layer architecture** implemented
+- ✅ **BDD with Cucumber** for UI tests
+- ✅ **Page Object Model** implemented
+- ✅ **Service layer architecture** for API tests
 - ✅ **Mochawesome reports** configured
 
 ---
@@ -43,6 +45,8 @@ Professional API test automation framework built with [Cypress](https://www.cypr
 
 ### Test Framework Capabilities
 - ✅ **API Testing**: Comprehensive CRUD operations testing
+- ✅ **UI Testing with BDD**: Cucumber/Gherkin for business-readable scenarios
+- ✅ **Page Object Model**: Maintainable UI test architecture
 - ✅ **Data-Driven Testing**: Parameterized tests with dynamic data generation
 - ✅ **Service Layer Pattern**: Abstracted API calls for maintainability
 - ✅ **Factory Pattern**: Faker-based test data builders
@@ -54,6 +58,7 @@ Professional API test automation framework built with [Cypress](https://www.cypr
 - ✅ **ESLint Integration**: Enforced code style and best practices
 - ✅ **100% Passing Tests**: All tests verified and passing
 - ✅ **Constants Extraction**: No magic strings, all messages centralized
+- ✅ **Cucumber World**: Proper context management in BDD tests
 - ✅ **Type Safety Ready**: Structure prepared for TypeScript migration
 
 ---
@@ -111,20 +116,29 @@ Run all tests in headless mode:
 npx cypress run
 ```
 
-### Run Specific Test Suite
+### Run API Tests
 
 ```bash
-# Run only GET tests
+# Run all API tests
+npx cypress run --spec "cypress/e2e/api/**/*.cy.js"
+
+# Run specific endpoint tests
 npx cypress run --spec "cypress/e2e/api/usuarios/getUsuarios.cy.js"
-
-# Run only POST tests
 npx cypress run --spec "cypress/e2e/api/usuarios/postUsuarios.cy.js"
-
-# Run only PUT tests
 npx cypress run --spec "cypress/e2e/api/usuarios/putUsuarios.cy.js"
-
-# Run only DELETE tests
 npx cypress run --spec "cypress/e2e/api/usuarios/deleteUsuarios.cy.js"
+```
+
+### Run UI Tests (Cucumber)
+
+```bash
+# Run all UI tests
+npx cypress run --spec "cypress/e2e/ui/**/*.feature"
+
+# Run specific feature
+npx cypress run --spec "cypress/e2e/ui/SignupLogin/login.feature"
+npx cypress run --spec "cypress/e2e/ui/SignupLogin/signUp.feature"
+npx cypress run --spec "cypress/e2e/ui/Home/search.feature"
 ```
 
 ### Run with Specific Browser
@@ -143,34 +157,58 @@ npx cypress run --browser edge
 outsera/
 ├── .github/
 │   └── workflows/
-│       └── main.yml                    # CI/CD pipeline configuration
+│       └── main.yml                     # CI/CD pipeline configuration
 ├── cypress/
 │   ├── e2e/
-│   │   └── api/
-│   │       └── usuarios/               # User endpoint tests
-│   │           ├── getUsuarios.cy.js   # GET tests (11 tests)
-│   │           ├── postUsuarios.cy.js  # POST tests (7 tests)
-│   │           ├── putUsuarios.cy.js   # PUT tests (1 test)
-│   │           └── deleteUsuarios.cy.js # DELETE tests (4 tests)
+│   │   ├── api/                         # API Tests (Mocha/Chai)
+│   │   │   └── usuarios/
+│   │   │       ├── getUsuarios.cy.js    # GET tests (11 tests)
+│   │   │       ├── postUsuarios.cy.js   # POST tests (7 tests)
+│   │   │       ├── putUsuarios.cy.js    # PUT tests (1 test)
+│   │   │       └── deleteUsuarios.cy.js # DELETE tests (4 tests)
+│   │   └── ui/                          # UI Tests (Cucumber/BDD)
+│   │       ├── SignupLogin/
+│   │       │   ├── login.feature        # Login scenarios
+│   │       │   ├── signUp.feature       # Signup scenarios
+│   │       │   └── step/
+│   │       │       ├── login.js         # Login step definitions
+│   │       │       └── signUp.js        # Signup step definitions
+│   │       └── Home/
+│   │           ├── search.feature       # Search scenarios
+│   │           └── step/
+│   │               └── search.js        # Search step definitions
 │   ├── factories/
-│   │   └── user.js                     # Faker-based user data builders
-│   ├── fixtures/                       # Static test data (JSON)
+│   │   ├── user.js                      # User data factory (Faker)
+│   │   └── product.js                   # Product data factory
+│   ├── pages/                           # Page Object Model (UI)
+│   │   ├── LoginPage.js                 # Login page object
+│   │   ├── SignupPage.js                # Signup page object
+│   │   └── HomePage.js                  # Home page object
 │   ├── services/
-│   │   └── UserService.js              # Service layer for user API
+│   │   └── UserService.js               # API service layer
 │   ├── support/
-│   │   ├── commands.js                 # UI custom commands
-│   │   ├── commandsApi.js              # API custom commands
-│   │   ├── messages.js                 # API message constants
-│   │   └── e2e.js                      # Global configuration
+│   │   ├── commands.js                  # UI custom commands
+│   │   ├── commandsApi.js               # API custom commands
+│   │   ├── assertions.js                # Reusable assertion helpers
+│   │   ├── constants.js                 # Routes and constants
+│   │   ├── messages.js                  # API message constants
+│   │   ├── testSetup.js                 # Test setup utilities
+│   │   └── e2e.js                       # Global configuration
+│   ├── schemas/
+│   │   └── userSchema.json              # JSON Schema for validation
 │   └── reports/
-│       ├── html/                       # Mochawesome HTML reports
-│       └── mocha/                      # Mochawesome JSON reports
-├── cypress.config.js                   # Cypress configuration
-├── eslint.config.mjs                   # ESLint flat configuration
-├── package.json                        # Project dependencies
-├── CLAUDE.md                           # Claude Code instructions
-├── ARCHITECTURE_ANALYSIS.md            # Architecture review document
-└── README.md                           # This file
+│       ├── cucumber/                    # Cucumber JSON reports
+│       ├── html/                        # Mochawesome HTML reports
+│       └── mocha/                       # Mochawesome JSON reports
+├── .cypress-cucumber-preprocessorrc.json # Cucumber configuration
+├── cypress.config.js                    # Cypress configuration
+├── eslint.config.mjs                    # ESLint flat configuration
+├── package.json                         # Project dependencies
+├── CLAUDE.md                            # Claude Code instructions
+├── CUCUMBER_BEST_PRACTICES_GUIDE.md     # Cucumber guide
+├── UI_TEST_ARCHITECTURE_REVIEW.md       # UI architecture review
+├── SENIOR_PROJECT_REVIEW.md             # Senior-level review
+└── README.md                            # This file
 ```
 
 ---
@@ -179,7 +217,7 @@ outsera/
 
 ### Design Patterns
 
-#### 1. **Service Layer Pattern**
+#### 1. **Service Layer Pattern** (API Tests)
 
 The `UserService` class abstracts all API interactions:
 
@@ -200,7 +238,34 @@ export class UserService {
 - Consistent error handling
 - Simplifies test code
 
-#### 2. **Factory Pattern**
+#### 2. **Page Object Model** (UI Tests)
+
+Pages encapsulate UI elements and interactions:
+
+```javascript
+// cypress/pages/LoginPage.js
+export class LoginPage {
+  get emailInput() { return cy.get('[data-testid="email"]') }
+  get passwordInput() { return cy.get('[data-testid="senha"]') }
+  
+  visit() {
+    cy.visit(ROUTES.LOGIN)
+    return this
+  }
+  
+  fillCredentials({ email, password }) {
+    // Implementation
+  }
+}
+```
+
+**Benefits:**
+- Encapsulates UI locators
+- Reusable across multiple tests
+- Easy to maintain when UI changes
+- Fluent interface pattern
+
+#### 3. **Factory Pattern**
 
 Test data builders with Faker.js:
 
@@ -220,7 +285,56 @@ export const createUser = (overrides = {}) => ({
 - Easy to create variations
 - Reduces test data duplication
 
-#### 3. **Data-Driven Testing**
+#### 4. **BDD with Cucumber** (UI Tests)
+
+Business-readable scenarios with Gherkin:
+
+```gherkin
+Feature: User Login
+  As a registered user
+  I want to log in to the application
+  So that I can access my account
+
+  Scenario: Successful login
+    Given I am on the login page
+    When I enter valid credentials
+    Then I should be redirected to home
+```
+
+**Benefits:**
+- Living documentation
+- Collaboration with non-technical stakeholders
+- Clear test intent
+- Reusable step definitions
+
+#### 5. **Cucumber World Pattern**
+
+Proper context management in BDD tests:
+
+```javascript
+Before(function () {
+  this.user = createUser()
+})
+
+Given('I have a registered user', function () {
+  return cy.createUser(this.user).then(({ body }) => {
+    this.user._id = body._id
+  })
+})
+
+After(function () {
+  if (this.user?._id) {
+    cy.deleteUserById(this.user._id)
+  }
+})
+```
+
+**Benefits:**
+- Proper test isolation
+- Shared context across steps
+- Safe cleanup with optional chaining
+
+#### 6. **Data-Driven Testing**
 
 Parameterized tests for comprehensive coverage:
 
@@ -238,17 +352,22 @@ filters.forEach(({ field, value }) => {
 })
 ```
 
-#### 4. **Constants Extraction**
+#### 7. **Constants Extraction**
 
-Centralized API messages:
+Centralized constants and messages:
 
 ```javascript
+// cypress/support/constants.js
+export const ROUTES = {
+  HOME: '/home',
+  LOGIN: '/login',
+  CADASTRAR_USUARIOS: '/cadastrarusuarios'
+}
+
 // cypress/support/messages.js
 export const API_MESSAGES = {
   USER_CREATED: 'Cadastro realizado com sucesso',
-  USER_UPDATED: 'Registro alterado com sucesso',
-  USER_DELETED: 'Registro excluído com sucesso',
-  // ...
+  USER_UPDATED: 'Registro alterado com sucesso'
 }
 ```
 
@@ -260,14 +379,20 @@ export const API_MESSAGES = {
 
 | Suite | Tests | Focus Area |
 |-------|-------|------------|
-| **GET /usuarios** | 11 | Retrieve users, query filtering, schema validation |
-| **POST /usuarios** | 7 | Create users, validation, duplicate detection |
-| **PUT /usuarios** | 1 | Update user information |
-| **DELETE /usuarios** | 4 | Delete users, idempotency, error handling |
-| **Total** | **23** | **Complete CRUD coverage** |
+| **API Tests** | **23** | **REST API CRUD operations** |
+| GET /usuarios | 11 | Retrieve users, query filtering, schema validation |
+| POST /usuarios | 7 | Create users, validation, duplicate detection |
+| PUT /usuarios | 1 | Update user information |
+| DELETE /usuarios | 4 | Delete users, idempotency, error handling |
+| **UI Tests (BDD)** | **12** | **User interface workflows** |
+| Login | 5 | Authentication, validation, error handling |
+| Sign Up | 5 | Registration, admin setup, validation |
+| Search | 2 | Product search, error states |
+| **Total** | **35** | **Complete E2E coverage** |
 
 ### Test Scenarios Covered
 
+#### API Tests
 ✅ **Happy Paths**
 - Create regular and admin users
 - Retrieve all users
@@ -282,9 +407,25 @@ export const API_MESSAGES = {
 - Double deletion scenarios
 
 ✅ **Data Validation**
-- Response schema validation
+- Response schema validation with AJV
 - Field type checking
 - Data persistence verification
+
+#### UI Tests (Cucumber/BDD)
+✅ **Authentication**
+- Successful login with valid credentials
+- Failed login with incorrect password
+- Failed login with incorrect email
+- Validation for empty email/password fields
+
+✅ **User Registration**
+- Register regular user successfully
+- Register admin user successfully
+- Validation for missing required fields
+
+✅ **Product Search**
+- Search for existing products
+- Handle non-existent product searches
 
 ---
 
@@ -406,21 +547,25 @@ const apiUrl = Cypress.expose('apiUrl')
 
 | Package | Version | Purpose |
 |---------|---------|---------|
+| `@badeball/cypress-cucumber-preprocessor` | ^28.0.0 | Cucumber/BDD support |
+| `@bahmutov/cypress-esbuild-preprocessor` | ^2.2.8 | Esbuild bundler for Cucumber |
 | `@faker-js/faker` | ^10.6.0 | Generate realistic test data |
+| `ajv` | ^8.20.0 | JSON Schema validator |
+| `ajv-formats` | ^3.0.1 | Format validation for AJV |
 | `eslint` | ^10.12.0 | JavaScript linter |
 | `@eslint/js` | ^10.0.1 | ESLint recommended rules |
 | `eslint-plugin-cypress` | ^7.0.2 | Cypress-specific lint rules |
 | `eslint-plugin-no-only-tests` | ^3.4.0 | Prevent committed `.only` tests |
-| `mochawesome` | Latest | HTML test reporter |
-| `mochawesome-merge` | Latest | Merge multiple JSON reports |
-| `mochawesome-report-generator` | Latest | Generate HTML from merged JSON |
+| `mochawesome` | ^8.1.1 | HTML test reporter |
+| `mochawesome-merge` | ^5.1.1 | Merge multiple JSON reports |
+| `mochawesome-report-generator` | ^6.3.2 | Generate HTML from merged JSON |
 
 ### Installing Missing Dependencies
 
 If you encounter missing dependencies:
 
 ```bash
-npm install --save-dev mochawesome mochawesome-merge mochawesome-report-generator
+npm install --save-dev @badeball/cypress-cucumber-preprocessor @bahmutov/cypress-esbuild-preprocessor ajv ajv-formats
 ```
 
 ---
@@ -532,8 +677,11 @@ start cypress/reports/html/index.html # Windows
 ### Additional Resources
 
 - 📄 **[CLAUDE.md](./CLAUDE.md)** - Instructions for Claude Code AI assistant
-- 📄 **[ARCHITECTURE_ANALYSIS.md](./ARCHITECTURE_ANALYSIS.md)** - Comprehensive architecture review
+- 📄 **[SENIOR_PROJECT_REVIEW.md](./SENIOR_PROJECT_REVIEW.md)** - Comprehensive senior-level project review
+- 📄 **[CUCUMBER_BEST_PRACTICES_GUIDE.md](./CUCUMBER_BEST_PRACTICES_GUIDE.md)** - Cucumber best practices guide
+- 📄 **[UI_TEST_ARCHITECTURE_REVIEW.md](./UI_TEST_ARCHITECTURE_REVIEW.md)** - UI test architecture review
 - 📘 **[Cypress Documentation](https://docs.cypress.io/)** - Official Cypress docs
+- 📘 **[Cucumber Documentation](https://cucumber.io/docs/cucumber/)** - Official Cucumber docs
 - 📘 **[ServeRest API Docs](https://serverest.dev/)** - API specification
 
 ### Common Commands Reference
@@ -543,11 +691,15 @@ start cypress/reports/html/index.html # Windows
 npm install                              # Install dependencies
 npm install --save-dev <package>         # Add dev dependency
 
-# Testing
+# Testing - API
 npx cypress open                         # Open interactive runner
 npx cypress run                          # Run all tests headless
+npx cypress run --spec "cypress/e2e/api/**/*.cy.js"  # Run only API tests
 npx cypress run --browser chrome         # Run with specific browser
-npx cypress run --spec "path/to/spec"    # Run specific spec
+
+# Testing - UI (Cucumber)
+npx cypress run --spec "cypress/e2e/ui/**/*.feature" # Run all UI tests
+npx cypress run --spec "cypress/e2e/ui/SignupLogin/login.feature" # Specific feature
 
 # Code Quality
 npx eslint cypress                       # Lint all test files
@@ -599,20 +751,25 @@ npm install --save-dev mochawesome mochawesome-merge mochawesome-report-generato
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ Tests:        23                                               │
-│ Passing:      23                                               │
+│ Tests:        35                                               │
+│ Passing:      35                                               │
 │ Failing:      0                                                │
 │ Pending:      0                                                │
 │ Skipped:      0                                                │
-│ Duration:     13 seconds                                       │
+│ Duration:     45 seconds                                       │
 └────────────────────────────────────────────────────────────────┘
 ```
 
-**Breakdown:**
+**API Tests Breakdown:**
 - ✅ deleteUsuarios.cy.js: 4 passing
 - ✅ getUsuarios.cy.js: 11 passing
 - ✅ postUsuarios.cy.js: 7 passing
 - ✅ putUsuarios.cy.js: 1 passing
+
+**UI Tests Breakdown:**
+- ✅ login.feature: 5 passing
+- ✅ signUp.feature: 5 passing
+- ✅ search.feature: 2 passing
 
 ---
 
@@ -624,16 +781,20 @@ npm install --save-dev mochawesome mochawesome-merge mochawesome-report-generato
 - **Test Isolation**: Each test should be independent and not rely on other tests.
 - **No `.only` in commits**: ESLint will fail if you commit `it.only` or `describe.only`.
 - **Rate Limiting**: Be mindful of API rate limits during test development.
+- **Cucumber Step Definitions**: Located in `cypress/e2e/ui/**/step/` directories.
 
 ### Future Improvements
 
 - [ ] Add authentication/authorization tests
-- [ ] Expand to cover `/produtos` endpoint
+- [ ] Expand to cover `/produtos` endpoint (in progress)
 - [ ] Expand to cover `/carrinhos` endpoint
 - [ ] Add boundary and edge case tests (invalid emails, special characters)
 - [ ] Implement TypeScript for type safety
 - [ ] Add visual regression testing for front-end
 - [ ] Add performance/load testing
+- [ ] Add accessibility testing (cypress-axe)
+- [ ] Implement parallel test execution
+- [ ] Add tagging strategy for Cucumber scenarios (@smoke, @regression)
 
 ---
 

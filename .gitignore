@@ -1,11 +1,14 @@
-/CLAUDE.md
+# Ignore all Markdown files
+*.md
+
+# Except README.md
+!README.md
+
+# Node modules
 /node_modules
+
+# Cypress artifacts
 /cypress/reports
 /cypress/screenshots
 /cypress/videos
 /cypress/downloads
-ARCHITECTURE_ANALYSIS.md
-HONEST_REVIEW.md
-CURRENT_STATE.md
-FINAL_REVIEW.md
-PACKAGE_REVIEW.md

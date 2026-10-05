@@ -6,6 +6,7 @@ Feature: User Sign-up
   Background:
     Given I am on the signup page
 
+  @authentication @smoke @critical
   Scenario: Register a new user successfully
     When I fill the signup form with valid user data
     And I submit the form
@@ -14,6 +15,7 @@ Feature: User Sign-up
     And I should be redirected to the home page
     And I should see "Serverest Store"
 
+  @authentication @smoke @critical
   Scenario: Register a new administrator successfully
     When I fill the signup form with valid admin data
     And I submit the form
@@ -22,17 +24,14 @@ Feature: User Sign-up
     And I should be redirected to the admin home page
     And I should see the welcome message with admin name
 
-  Scenario: Registration fails when name is missing
-    When I fill the signup form without the "nome" field
+  @error-handling
+  Scenario: Registration fails when "<field>" missing
+    When I fill the signup form without the "<field>"
     And I submit the form
-    Then I should see the validation error "Nome é obrigatório"
+    Then I should see the validation error "<message>"
 
-  Scenario: Registration fails when email is missing
-    When I fill the signup form without the "email" field
-    And I submit the form
-    Then I should see the validation error "Email é obrigatório"
-
-  Scenario: Registration fails when password is missing
-    When I fill the signup form without the "password" field
-    And I submit the form
-    Then I should see the validation error "Password é obrigatório"
+    Examples:
+      | field    | message                |
+      | nome     | Nome é obrigatório     |
+      | password | Password é obrigatório |
+      | email    | Email é obrigatório    |

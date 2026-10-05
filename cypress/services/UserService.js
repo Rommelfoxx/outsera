@@ -1,4 +1,4 @@
-
+import { ROUTES } from '../support/constants'
 
 export class UserService {
     constructor() {
@@ -8,7 +8,7 @@ export class UserService {
     create(user, { failOnStatusCode = true } = {}) {
         return cy.request({
             method: 'POST',
-            url: `${this.baseUrl}/usuarios`,
+            url: `${this.baseUrl}${ROUTES.USUARIOS}`,
             body: user,
             failOnStatusCode
         })
@@ -17,7 +17,7 @@ export class UserService {
     getAll(filters = {}) {
         return cy.request({
             method: 'GET',
-            url: `${this.baseUrl}/usuarios`,
+            url: `${this.baseUrl}${ROUTES.USUARIOS}`,
             qs: filters
         })
     }
@@ -29,7 +29,7 @@ export class UserService {
     update(id, user) {
         return cy.request({
             method: 'PUT',
-            url: `${this.baseUrl}/usuarios/${id}`,
+            url: `${this.baseUrl}${ROUTES.USUARIOS}/${id}`,
             body: user
         })
     }
@@ -37,7 +37,7 @@ export class UserService {
     delete(id) {
         return cy.request({
             method: 'DELETE',
-            url: `${this.baseUrl}/usuarios/${id}`
+            url: `${this.baseUrl}${ROUTES.USUARIOS}/${id}`
         })
     }
 }

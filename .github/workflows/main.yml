@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  NODE_VERSION: '24'
+  NODE_VERSION: "24"
 
 jobs:
   test-api:
@@ -168,4 +168,111 @@ jobs:
           name: videos-api
           path: cypress/videos/
           if-no-files-found: ignore
+          retention-days: 7
+  # ─── Testes de UI ─────────────────────────────────────────────────────────────
+  test-ui:
+    name: Testes de UI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Cache binário do Cypress
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Verificar versão do Chrome disponível
+        run: google-chrome --version
+
+      - name: Executar testes UI — Login
+        id: test-login
+        continue-on-error: true
+        run: npx cypress run --browser chrome --headless --spec "cypress/e2e/ui/SignupLogin/login.cy.js"
+
+      - name: Executar testes UI — Cadastro
+        id: test-signup
+        continue-on-error: true
+        run: npx cypress run --browser chrome --headless --spec "cypress/e2e/ui/SignupLogin/signUp.cy.js"
+
+      - name: Executar testes UI — Busca (Home)
+        id: test-search
+        continue-on-error: true
+        run: npx cypress run --browser chrome --headless --spec "cypress/e2e/ui/Home/search.cy.js"
+
+      - name: Mesclar relatórios JSON
+        if: always()
+        run: |
+          if ls cypress/reports/mocha/.jsons/*.json 1> /dev/null 2>&1; then
+            npm run report:merge
+          else
+            echo "Nenhum relatório JSON encontrado para mesclar."
+          fi
+      - name: Gerar relatório HTML
+        if: always()
+        run: |
+          if [ -f cypress/reports/mocha/merged.json ]; then
+            npm run report:generate
+          else
+            echo "merged.json não encontrado, pulando geração de HTML."
+          fi
+      - name: Upload relatório Mochawesome
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mochawesome-report-ui
+          path: cypress/reports/html/
+          retention-days: 7
+
+      - name: Publicar resumo do relatório no GitHub Actions
+        if: always()
+        run: |
+          echo "## 📊 Mochawesome Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          node -e "
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('cypress/reports/mocha/merged.json'));
+          const { passes, failures, pending, duration } = report.stats;
+          const total = passes + failures + pending;
+          const status = failures === 0 ? '✅ Passed' : '❌ Failed';
+          console.log('| Total | ' + total + ' |');
+          console.log('| ✅ Passed | ' + passes + ' |');
+          console.log('| ❌ Failed | ' + failures + ' |');
+          console.log('| ⏱ Duration | ' + (duration / 1000).toFixed(1) + 's |');
+          console.log('| Status | ' + status + ' |');
+          " >> $GITHUB_STEP_SUMMARY
+      - name: Verificar resultado dos testes UI
+        if: always()
+        run: |
+          if [ "${{ steps.test-login.outcome }}" = "failure" ] || [ "${{ steps.test-signup.outcome }}" = "failure" ] || [ "${{ steps.test-search.outcome }}" = "failure" ]; then
+            echo "Uma ou mais suítes de teste falharam."
+            exit 1
+          fi
+      - name: Upload screenshots (somente em falha)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: screenshots-ui
+          path: cypress/screenshots/
+          retention-days: 7
+
+      - name: Upload vídeos (somente em falha)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: videos-ui
+          path: cypress/videos/
           retention-days: 7
