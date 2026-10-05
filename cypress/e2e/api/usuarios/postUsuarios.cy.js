@@ -1,6 +1,6 @@
 import { createUser, createUserAdmin } from '../../../factories/user.js'
-import { API_MESSAGES } from '../../../support/messages'
 import { UserService } from '../../../services/UserService'
+import { expectSuccessfulCreation, expectValidationError, expectEmailAlreadyUsed, expectUserToMatch, expectSuccessfulSearch } from '../../../support/assertions'
 
 const userService = new UserService()
 
@@ -16,33 +16,12 @@ describe('POST /usuarios', () => {
         it('Create a new user', () => {
             userService.create(user)
                 .then(({ status, body }) => {
-                    user._id = body._id
-
-                    expect(status).to.eq(201)
-                    expect(body)
-                        .to.have.property(
-                            "message",
-                            API_MESSAGES.USER_CREATED
-                        )
-                    expect(body._id)
-                        .to.be.a("string")
-                        .and.not.be.empty
+                    user._id = expectSuccessfulCreation({ status, body })
 
                     userService.getById(body._id)
-                        .then(({ status, body }) => {
-
-                            expect(status).to.eq(200)
-                            expect(body.usuarios).to.be.an('array')
-                                .and.have.length(1)
-                            expect(body.quantidade).to.eq(1)
-
-                            expect(body.usuarios[0]).to.include({
-                                _id: user._id,
-                                nome: user.nome,
-                                email: user.email,
-                                password: user.password,
-                                administrador: user.administrador
-                            })
+                        .then((response) => {
+                            expectSuccessfulSearch(response)
+                            expectUserToMatch(response.body.usuarios[0], user)
                         })
                 })
         })
@@ -50,34 +29,14 @@ describe('POST /usuarios', () => {
         it('Create a new admin user', () => {
             userService.create(userAdmin)
                 .then(({ status, body }) => {
-                    userAdmin._id = body._id
-
-                    expect(status).to.eq(201)
-                    expect(body)
-                        .to.have.property(
-                            "message",
-                            API_MESSAGES.USER_CREATED
-                        )
-                    expect(body._id)
-                        .to.be.a("string")
-                        .and.not.be.empty
+                    userAdmin._id = expectSuccessfulCreation({ status, body })
 
                     userService.getById(body._id)
                         .then(({ status, body }) => {
 
-                            expect(status).to.eq(200)
+                            expectSuccessfulSearch({ status, body })
 
-                            expect(body.usuarios).to.be.an('array')
-                                .and.have.length(1)
-                            expect(body.quantidade).to.eq(1)
-
-                            expect(body.usuarios[0]).to.include({
-                                _id: userAdmin._id,
-                                nome: userAdmin.nome,
-                                email: userAdmin.email,
-                                password: userAdmin.password,
-                                administrador: userAdmin.administrador
-                            })
+                            expectUserToMatch(body.usuarios[0], userAdmin)
                         })
                 })
         })
@@ -85,22 +44,15 @@ describe('POST /usuarios', () => {
     context('Error tests', () => {
         it('rejects an email that is already registered', () => {
 
-            cy.createUser(user).then(({ status }) => {
-                expect(status, 'setup registration status').to.eq(201)
+            cy.createUser(user).then(({ status, body }) => {
+                expectSuccessfulCreation({ status, body })
             })
 
             return userService.create(user, {
                 failOnStatusCode: false
             })
                 .then(({ status, body }) => {
-
-                    expect(status).to.eq(400)
-
-                    expect(body)
-                        .to.have.property(
-                            "message",
-                            API_MESSAGES.EMAIL_ALREADY_USED
-                        )
+                    expectEmailAlreadyUsed({ status, body })
                 })
         })
         const mandatoryFields = [
@@ -131,29 +83,42 @@ describe('POST /usuarios', () => {
                 return userService.create(payload, {
                     failOnStatusCode: false
                 }).then(({ status, body }) => {
-                    if (status === 201 && body._id) {
-                        user._id = body._id
-                    }
-                    expect(status)
-                        .to.eq(400)
 
-                    expect(body)
-                        .to.have.property(
-                            field,
-                            API_MESSAGES.FIELD_REQUIRED(field)
-                        )
+                    expectValidationError({ status, body, field })
+
                     expect(body).to.have.all.keys(field)
                 })
             })
         })
+        const invalidEmails = [
+            { email: 'notanemail', reason: 'missing @ and domain' },
+            { email: '@test.com', reason: 'missing local part' },
+            { email: 'test@', reason: 'missing domain' },
+            { email: 'test @test.com', reason: 'space in email' },
+            { email: 'test..test@test.com', reason: 'double dots' },
+        ]
+        invalidEmails.forEach(({ email, reason }) => {
+            it(`rejects invalid email: ${reason}`, () => {
+                const user = createUser({ email })
+
+                userService.create(user, {
+                    failOnStatusCode: false
+                }).then(({ status, body }) => {
+                    expect(status).to.eq(400)
+                    expect(body.email).to.eq('email deve ser um email válido')
+
+                    // Assert appropriate error message
+                })
+            })
+        })
     })
+
     afterEach(() => {
         const ids = [user._id, userAdmin._id].filter(Boolean)
 
         if (ids.length === 0) {
             return
         }
-
         return cy.wrap(ids, { log: false }).each((id) => {
             return cy.deleteUserById(id)
                 .then(({ status }) => {

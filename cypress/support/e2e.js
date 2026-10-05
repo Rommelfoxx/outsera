@@ -19,7 +19,20 @@ import './commandsApi'
 
 
 Cypress.on('log:added', (attrs) => {
-    if (attrs.name === 'request') {
-        console.log('Request log added:', attrs)
+    if (attrs.instrument === 'request') {
+        console.log('🔵 Request:', {
+            method: attrs.method,
+            url: attrs.url,
+            body: attrs.body
+        })
+    }
+})
+
+Cypress.on('log:changed', (attrs) => {
+    if (attrs.instrument === 'request' && attrs.state === 'passed') {
+        console.log('🟢 Response:', {
+            status: attrs.status,
+            body: attrs.response?.body
+        })
     }
 })

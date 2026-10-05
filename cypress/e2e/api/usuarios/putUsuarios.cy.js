@@ -1,6 +1,6 @@
 import { UserService } from '../../../services/UserService'
 import { createUser, updatedUser } from '../../../factories/user.js'
-import { API_MESSAGES } from '../../../support/messages'
+import { expectSuccessfulCreation, expectSuccessfulUpdate } from '../../../support/assertions'
 
 const userService = new UserService()
 describe('PUT /usuarios', () => {
@@ -11,7 +11,6 @@ describe('PUT /usuarios', () => {
     })
     context('Sucessfull test', () => {
 
-
         it('Updates a user successfully', () => {
 
             const user = createUser()
@@ -19,23 +18,12 @@ describe('PUT /usuarios', () => {
 
             cy.createUser(user)
                 .then(({ status, body }) => {
-                    userId = body._id
-
-                    expect(status, 'create user status').to.eq(201)
-                    expect(body._id, 'created user ID')
-                        .to.be.a('string')
-                        .and.not.be.empty
+                    userId = user._id = expectSuccessfulCreation({ status, body })
 
                     return userService.update(userId, userNew)
                 })
                 .then(({ status, body }) => {
-                    expect(status)
-                        .to.eq(200)
-
-                    expect(body).to.have.property(
-                        'message',
-                        API_MESSAGES.USER_UPDATED
-                    )
+                    expectSuccessfulUpdate({ status, body })
 
                     return userService.getById(userId)
                 })

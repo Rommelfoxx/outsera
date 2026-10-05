@@ -1,5 +1,6 @@
 import { UserService } from '../../../services/UserService'
 import { createUser, createUserInvalid } from '../../../factories/user.js'
+import { expectSuccessfulCreation, expectfailfulSearch } from '../../../support/assertions'
 
 const userService = new UserService()
 describe('GET /usuarios', () => {
@@ -8,13 +9,8 @@ describe('GET /usuarios', () => {
 
     before(() => {
         return cy.createUser(user)
-            .then(({ status, body }) => {
-                expect(status, 'create user status').to.eq(201)
-                expect(body._id, 'created user ID')
-                    .to.be.a('string')
-                    .and.not.be.empty
-
-                user._id = body._id
+            .then((response) => {
+                user._id = expectSuccessfulCreation(response)
             })
     })
 
@@ -23,6 +19,8 @@ describe('GET /usuarios', () => {
             userService.getAll()
                 .then(({ status, body }) => {
                     const { usuarios, quantidade } = body
+
+                    cy.validateUserSchema(usuarios[0])
 
                     expect(status, 'list users status').to.eq(200)
 
@@ -74,6 +72,8 @@ describe('GET /usuarios', () => {
                 .then(({ status, body }) => {
                     const { quantidade, usuarios } = body
 
+                    cy.validateUserSchema(usuarios[0])
+
                     expect(usuarios)
                         .to.be.an('array')
                         .and.not.be.empty
@@ -119,6 +119,8 @@ describe('GET /usuarios', () => {
                 })
                     .then(({ status, body }) => {
                         const { quantidade, usuarios } = body
+
+                        cy.validateUserSchema(usuarios[0])
 
                         expect(status).to.eq(200)
 
@@ -177,17 +179,12 @@ describe('GET /usuarios', () => {
                 return userService.getAll({
                     [field]: expectedValue
                 })
-                    .then(({ status, body }) => {
-                        const { quantidade, usuarios } = body
-                        expect(status).to.eq(200)
-
-                        expect(quantidade).to.eq(0)
-                        expect(usuarios)
-                            .to.be.an('array')
-                            .and.to.be.empty
+                    .then((response) => {
+                        expectfailfulSearch(response)
                     })
             })
         })
+
     })
     after(() => {
         if (!user._id) {

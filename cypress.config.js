@@ -18,11 +18,12 @@ module.exports = defineConfig({
     apiUrl: 'https://serverest.dev'
   },
   e2e: {
-    specPattern: 'cypress/e2e/**/*.cy.js',
-    baseUrl: 'https://front.serverest.dev/',
     setupNodeEvents(on, config) {
       return config
     },
+    specPattern: 'cypress/e2e/**/*.cy.js',
+    baseUrl: 'https://front.serverest.dev/',
+
   },
 
 

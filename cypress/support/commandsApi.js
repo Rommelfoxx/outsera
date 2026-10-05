@@ -1,5 +1,24 @@
-const apiUrl = Cypress.expose('apiUrl')
 
+import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
+import userSchema from '../schemas/userSchema.json'
+
+
+const ajv = new Ajv()
+const apiUrl = Cypress.expose('apiUrl')
+const validateUser = ajv.compile(userSchema)
+
+addFormats(ajv)
+
+Cypress.Commands.add('validateUserSchema', (user) => {
+    const valid = validateUser(user)
+
+    if (!valid) {
+        console.error('Schema validation errors:', validateUser.errors)
+    }
+
+    expect(valid, 'User schema validation').to.be.true
+})
 //Log in through the API
 Cypress.Commands.add('loginApi', (email, password) => {
     return cy.request({
