@@ -677,9 +677,6 @@ start cypress/reports/html/index.html # Windows
 ### Additional Resources
 
 - 📄 **[CLAUDE.md](./CLAUDE.md)** - Instructions for Claude Code AI assistant
-- 📄 **[SENIOR_PROJECT_REVIEW.md](./SENIOR_PROJECT_REVIEW.md)** - Comprehensive senior-level project review
-- 📄 **[CUCUMBER_BEST_PRACTICES_GUIDE.md](./CUCUMBER_BEST_PRACTICES_GUIDE.md)** - Cucumber best practices guide
-- 📄 **[UI_TEST_ARCHITECTURE_REVIEW.md](./UI_TEST_ARCHITECTURE_REVIEW.md)** - UI test architecture review
 - 📘 **[Cypress Documentation](https://docs.cypress.io/)** - Official Cypress docs
 - 📘 **[Cucumber Documentation](https://cucumber.io/docs/cucumber/)** - Official Cucumber docs
 - 📘 **[ServeRest API Docs](https://serverest.dev/)** - API specification

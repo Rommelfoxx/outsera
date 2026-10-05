@@ -20,6 +20,13 @@
     "webpack": "^5.111.1"
   },
   "scripts": {
+    "lint": "eslint .",
+    "lint:cypress": "eslint cypress",
+    "db": "node scripts/init_db.js",
+    "cypress:run": "cypress run",
+    "cypress:open": "cypress open",
+    "cypress:api": "cypress run --spec 'cypress/e2e/api/**/*.feature'",
+    "cypress:e2e": "cypress run --spec 'cypress/e2e/ui/**/*.feature'",
     "report:merge": "mochawesome-merge cypress/reports/mocha/.jsons/*.json -o cypress/reports/mocha/merged.json",
     "report:generate": "marge cypress/reports/mocha/merged.json -o cypress/reports/html"
   }

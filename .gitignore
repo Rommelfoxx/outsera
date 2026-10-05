@@ -12,3 +12,7 @@
 /cypress/screenshots
 /cypress/videos
 /cypress/downloads
+
+# K6 reports
+/k6/reports
+*.html

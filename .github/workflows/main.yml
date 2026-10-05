@@ -238,8 +238,14 @@ jobs:
       - name: Publicar resumo do relatório no GitHub Actions
         if: always()
         run: |
-          echo "## 📊 Mochawesome Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Mochawesome Test Report - UI" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ ! -f cypress/reports/mocha/merged.json ]; then
+            echo "⚠️ Relatório indisponível. Verifique se os testes foram executados." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
           echo "| Suite | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           node -e "
@@ -276,3 +282,124 @@ jobs:
           name: videos-ui
           path: cypress/videos/
           retention-days: 7
+
+  # ─── Testes de Performance (K6) ───────────────────────────────────────────────
+  performance-test:
+    name: Testes de Performance K6
+    runs-on: ubuntu-latest
+    # Run performance tests only on main branch to avoid overloading the API
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar K6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Verificar versão do K6
+        run: k6 version
+
+      - name: Criar diretório de relatórios
+        run: mkdir -p k6/reports
+
+      - name: Executar Load Test (500 usuários por 5 minutos)
+        id: load-test
+        continue-on-error: true
+        run: k6 run k6/tests/load-test-usuarios.js
+
+      - name: Executar Spike Test (teste de pico)
+        id: spike-test
+        continue-on-error: true
+        run: k6 run k6/tests/spike-test-usuarios.js
+
+      - name: Upload relatórios K6
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-performance-reports
+          path: k6/reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publicar resumo dos testes de performance
+        if: always()
+        run: |
+          echo "## 🚀 K6 Performance Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Load Test (500 users for 5 minutes)" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f k6/reports/load-test-summary.json ]; then
+            node -e "
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('k6/reports/load-test-summary.json', 'utf8'));
+
+            const metrics = report.metrics;
+            const httpReqDuration = metrics.http_req_duration;
+            const httpReqFailed = metrics.http_req_failed;
+            const iterations = metrics.iterations;
+            const vus = metrics.vus_max;
+
+            console.log('| Metric | Value |');
+            console.log('|--------|-------|');
+            console.log('| Total Requests | ' + metrics.http_reqs.values.count + ' |');
+            console.log('| Iterations | ' + iterations.values.count + ' |');
+            console.log('| Max VUs | ' + vus.values.max + ' |');
+            console.log('| Avg Response Time | ' + (httpReqDuration.values.avg / 1000).toFixed(2) + 's |');
+            console.log('| P95 Response Time | ' + (httpReqDuration.values['p(95)'] / 1000).toFixed(2) + 's |');
+            console.log('| P99 Response Time | ' + (httpReqDuration.values['p(99)'] / 1000).toFixed(2) + 's |');
+            console.log('| Error Rate | ' + (httpReqFailed.values.rate * 100).toFixed(2) + '% |');
+            console.log('| Status | ' + (httpReqFailed.values.rate < 0.05 ? '✅ PASS' : '❌ FAIL') + ' |');
+            " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Load test report not found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Spike Test (sudden surge to 1000 users)" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f k6/reports/spike-test-summary.json ]; then
+            node -e "
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('k6/reports/spike-test-summary.json', 'utf8'));
+
+            const metrics = report.metrics;
+            const httpReqDuration = metrics.http_req_duration;
+            const httpReqFailed = metrics.http_req_failed;
+
+            console.log('| Metric | Value |');
+            console.log('|--------|-------|');
+            console.log('| Total Requests | ' + metrics.http_reqs.values.count + ' |');
+            console.log('| Max VUs | ' + metrics.vus_max.values.max + ' |');
+            console.log('| P95 Response Time | ' + (httpReqDuration.values['p(95)'] / 1000).toFixed(2) + 's |');
+            console.log('| Error Rate | ' + (httpReqFailed.values.rate * 100).toFixed(2) + '% |');
+            console.log('| Recovery Status | ' + (httpReqFailed.values.rate < 0.15 ? '✅ System Recovered' : '⚠️ Degraded') + ' |');
+            " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Spike test report not found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Full HTML reports available in artifacts**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Verificar thresholds dos testes
+        if: always()
+        run: |
+          EXIT_CODE=0
+
+          if [ "${{ steps.load-test.outcome }}" = "failure" ]; then
+            echo "❌ Load test failed - performance thresholds not met"
+            EXIT_CODE=1
+          fi
+
+          if [ "${{ steps.spike-test.outcome }}" = "failure" ]; then
+            echo "⚠️ Spike test failed - system may have issues with traffic surges"
+            EXIT_CODE=1
+          fi
+
+          exit $EXIT_CODE
