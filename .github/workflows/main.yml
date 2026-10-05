@@ -318,6 +318,11 @@ jobs:
         continue-on-error: true
         run: k6 run k6/tests/spike-test-usuarios.js
 
+      # Stress and Soak tests commented out - too long for CI/CD on public API
+      # Run these manually when needed:
+      # k6 run k6/tests/stress-test-usuarios.js  (13 min)
+      # k6 run k6/tests/soak-test-usuarios.js    (19 min)
+
       - name: Upload relatórios K6
         if: always()
         uses: actions/upload-artifact@v4
