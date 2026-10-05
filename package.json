@@ -3,16 +3,21 @@
     "cypress": "^16.1.1"
   },
   "devDependencies": {
+    "@badeball/cypress-cucumber-preprocessor": "^28.0.0",
+    "@bahmutov/cypress-esbuild-preprocessor": "^2.2.8",
+    "@cypress/webpack-preprocessor": "^8.0.0",
     "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.6.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "cypress-cucumber-preprocessor": "^4.3.1",
     "eslint": "^10.12.0",
     "eslint-plugin-cypress": "^7.0.2",
     "eslint-plugin-no-only-tests": "^3.4.0",
     "mochawesome": "^8.1.1",
     "mochawesome-merge": "^5.1.1",
-    "mochawesome-report-generator": "^6.3.2"
+    "mochawesome-report-generator": "^6.3.2",
+    "webpack": "^5.111.1"
   },
   "scripts": {
     "report:merge": "mochawesome-merge cypress/reports/mocha/.jsons/*.json -o cypress/reports/mocha/merged.json",

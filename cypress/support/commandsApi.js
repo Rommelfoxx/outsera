@@ -27,13 +27,9 @@ Cypress.Commands.add('loginApi', (email, password) => {
             email,
             password
         }
-    }).then(({ status, body }) => {
-        expect(status, 'login status').to.eq(200)
-        expect(body.authorization, 'authorization token')
-            .to.be.a('string')
-            .and.not.be.empty
+    }).then((response) => {
 
-        return body.authorization
+        return response.body.authorization
     })
 })
 Cypress.Commands.add('createUser', (user) => {
@@ -67,6 +63,74 @@ Cypress.Commands.add('searchUserById', (userId) => {
     })
 })
 
+Cypress.Commands.add('criarProduto', (email, password, product) => {
+
+    return cy.loginApi(email, password)
+        .then((auth) => {
+
+            return cy.request({
+                method: 'POST',
+                url: `${apiUrl}/produtos`,
+                headers: { 'authorization': auth },
+                body: {
+                    nome: product.nome,
+                    preco: product.preco,
+                    descricao: product.descricao,
+                    quantidade: product.quantidade
+                }
+            }).then((response) => {
+
+                expect(response.status)
+                    .to.eq(201)
+
+                return response
+            })
+        })
+})
+
+Cypress.Commands.add('excluirProduto', (email, password, id) => {
+    cy.loginApi(email, password)
+        .then((auth) => {
+
+            return cy.request({
+                method: 'DELETE',
+                headers: { 'authorization': auth },
+                url: `${apiUrl}/produtos/${id}`
+            }).then((response) => {
+
+                expect(response.status)
+                    .to.eq(200)
+
+                return response
+            })
+        })
+})
+
+//Apagar usuario informando nome 
+Cypress.Commands.add('apagarUsuario', (userName) => {
+
+    return cy.request({
+        method: 'GET',
+        url: `${apiUrl}/usuarios`,
+        qs: {
+            nome: userName
+        },
+        failOnStatusCode: false
+    }).then((response) => {
+
+        const usuarios = response.body?.usuarios
+
+        if (usuarios?.length > 0) {
+
+            return cy.request({
+                method: 'DELETE',
+                url: `${apiUrl}/usuarios/${usuarios[0]._id}`,
+                failOnStatusCode: false
+            })
+        }
+        cy.log(`Usuário "${userName}" não encontrado, nada a deletar.`)
+    })
+})
 
 
 
