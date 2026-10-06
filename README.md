@@ -149,6 +149,43 @@ npx cypress run --browser firefox
 npx cypress run --browser edge
 ```
 
+### Run Performance Tests (K6)
+
+The project includes K6 performance tests for load, stress, spike, and soak testing:
+
+```bash
+# Smoke test (50 VUs for 1 minute)
+k6 run --vus 50 --duration 1m k6/tests/load-test-usuarios.js
+
+# Load test (500 VUs, 10 minutes)
+k6 run k6/tests/load-test-usuarios.js
+
+# Stress test (gradual ramp to 1000 VUs)
+k6 run k6/tests/stress-test-usuarios.js
+
+# Spike test (sudden load spikes)
+k6 run k6/tests/spike-test-usuarios.js
+
+# Soak test (sustained load for 30 minutes)
+k6 run k6/tests/soak-test-usuarios.js
+```
+
+**Note:** K6 tests automatically clean up LoadTest users in a teardown phase.
+
+**Install K6:**
+- **macOS:** `brew install k6`
+- **Windows:** `choco install k6` or download from [k6.io](https://k6.io/docs/get-started/installation/)
+- **Linux:** See [k6 installation docs](https://k6.io/docs/get-started/installation/)
+
+### Cleanup Utilities
+
+```bash
+# Delete all LoadTest users (from K6 performance tests)
+npx cypress run --spec "cypress/e2e/api/usuarios/cleanupLoadTestUsers.cy.js"
+```
+
+**Note:** This is useful after running K6 performance tests locally if the teardown phase fails.
+
 ---
 
 ## 📁 Project Structure
@@ -157,7 +194,7 @@ npx cypress run --browser edge
 outsera/
 ├── .github/
 │   └── workflows/
-│       └── main.yml                     # CI/CD pipeline configuration
+│       └── main.yml                     # CI/CD pipeline (parallel execution)
 ├── cypress/
 │   ├── e2e/
 │   │   ├── api/                         # API Tests (Mocha/Chai)
@@ -165,16 +202,17 @@ outsera/
 │   │   │       ├── getUsuarios.cy.js    # GET tests (11 tests)
 │   │   │       ├── postUsuarios.cy.js   # POST tests (7 tests)
 │   │   │       ├── putUsuarios.cy.js    # PUT tests (1 test)
-│   │   │       └── deleteUsuarios.cy.js # DELETE tests (4 tests)
+│   │   │       ├── deleteUsuarios.cy.js # DELETE tests (4 tests)
+│   │   │       └── cleanupLoadTestUsers.cy.js # Cleanup utility
 │   │   └── ui/                          # UI Tests (Cucumber/BDD)
 │   │       ├── SignupLogin/
-│   │       │   ├── login.feature        # Login scenarios
-│   │       │   ├── signUp.feature       # Signup scenarios
+│   │       │   ├── login.feature        # Login scenarios (5 tests)
+│   │       │   ├── signUp.feature       # Signup scenarios (5 tests)
 │   │       │   └── step/
 │   │       │       ├── login.js         # Login step definitions
 │   │       │       └── signUp.js        # Signup step definitions
 │   │       └── Home/
-│   │           ├── search.feature       # Search scenarios
+│   │           ├── search.feature       # Search scenarios (2 tests)
 │   │           └── step/
 │   │               └── search.js        # Search step definitions
 │   ├── factories/
@@ -199,7 +237,15 @@ outsera/
 │   └── reports/
 │       ├── cucumber/                    # Cucumber JSON reports
 │       ├── html/                        # Mochawesome HTML reports
-│       └── mocha/                       # Mochawesome JSON reports
+│       └── mocha/
+│           └── .jsons/                  # Mochawesome JSON reports
+├── k6/
+│   ├── tests/
+│   │   ├── load-test-usuarios.js        # Load test (500 VUs, 10 min)
+│   │   ├── stress-test-usuarios.js      # Stress test (gradual ramp)
+│   │   ├── spike-test-usuarios.js       # Spike test (sudden loads)
+│   │   └── soak-test-usuarios.js        # Soak test (30 min sustained)
+│   └── reports/                         # K6 test reports
 ├── .cypress-cucumber-preprocessorrc.json # Cucumber configuration
 ├── cypress.config.js                    # Cypress configuration
 ├── eslint.config.mjs                    # ESLint flat configuration
@@ -433,34 +479,88 @@ export const API_MESSAGES = {
 
 ### GitHub Actions Workflow
 
-The project uses GitHub Actions for continuous integration:
+The project uses GitHub Actions with **parallel test execution** and sequential performance testing:
 
 **Triggers:**
 - Push to `main` or `dev` branches
 - Pull requests to `main`
 
-**Pipeline Steps:**
-1. ✅ Checkout code
-2. ✅ Setup Node.js 24 with npm caching
-3. ✅ Cache Cypress binary
-4. ✅ Install dependencies
-5. ✅ Run tests with Chrome headless
-6. ✅ Generate Mochawesome reports
-7. ✅ Upload artifacts (reports, screenshots, videos)
-8. ✅ Publish test summary to GitHub Actions
+**Pipeline Architecture:**
+
+```
+┌─────────────────────────┐
+│    Push to main/dev     │
+└───────────┬─────────────┘
+            │
+    ┌───────┴──────────────┐
+    │  PARALLEL EXECUTION  │
+    │  (Independent Jobs)  │
+    └───┬──────────────┬───┘
+        │              │
+┌───────▼──────┐  ┌────▼───────┐
+│  API Tests   │  │  UI Tests  │
+│  (23 tests)  │  │  (12 tests)│
+│  Chrome      │  │  Chrome    │
+└───────┬──────┘  └────┬───────┘
+        │              │
+        └──────┬───────┘
+               │ Both must succeed
+          ┌────▼──────────────┐
+          │ Performance Tests │
+          │ K6 Smoke (50 VUs) │
+          │ (main branch only)│
+          └───────────────────┘
+```
+
+**Job Details:**
+
+1. **test-api** (runs in parallel)
+   - Checkout code
+   - Setup Node.js 24 with npm caching
+   - Cache Cypress binary
+   - Install dependencies
+   - Run API tests with Chrome headless
+   - Generate Mochawesome reports
+   - Upload artifacts (reports, screenshots, videos)
+
+2. **test-ui** (runs in parallel)
+   - Same setup as API tests
+   - Run UI/Cucumber tests with Chrome headless
+   - Generate Mochawesome reports
+   - Upload artifacts
+
+3. **performance-smoke** (runs after API & UI succeed)
+   - Only runs on `main` branch
+   - Requires both API and UI tests to pass
+   - Install K6
+   - Run smoke test (50 VUs for 1 minute)
+   - Upload K6 reports
+   - Automatic LoadTest user cleanup via teardown
+
+**Concurrency Control:**
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+```
+This ensures both test suites complete independently even if one fails.
 
 **Artifacts Uploaded:**
 - 📊 HTML test reports (7-day retention)
+- 📊 K6 performance reports (7-day retention)
 - 📸 Screenshots (failures only)
 - 🎥 Videos (failures only)
 
 **View Pipeline:**
 ```bash
-# Local GitHub Actions summary
+# View workflow runs
 gh run list
 
 # View latest run details
 gh run view
+
+# Watch a run in real-time
+gh run watch
 ```
 
 ---
@@ -507,30 +607,60 @@ npx eslint cypress --fix
     runMode: 1,      // Retry failed tests once in CI
     openMode: 0      // No retries in interactive mode
   },
-  viewportHeight: 1440,
-  viewportWidth: 900,
+  viewportHeight: 900,
+  viewportWidth: 1440,
   reporter: 'mochawesome',
   reporterOptions: {
     reportDir: 'cypress/reports/mocha/.jsons',
+    reportFilename: '[name]',
+    quiet: true,
     overwrite: false,
-    html: false,
+    html: false,     // Only JSON (HTML generated after merge)
     json: true
   },
   expose: {
     apiUrl: 'https://serverest.dev'  // API base URL
   },
   e2e: {
-    specPattern: 'cypress/e2e/**/*.cy.js',
+    specPattern: [
+      'cypress/e2e/**/*.cy.js',
+      'cypress/e2e/**/*.feature'
+    ],
     baseUrl: 'https://front.serverest.dev/'
   }
 }
 ```
 
+### K6 Configuration
+
+K6 tests use different configurations for each test type:
+
+**Load Test** (`load-test-usuarios.js`):
+- Ramp-up: 1 min to 100 VUs, 2 min to 300 VUs, 5 min at 500 VUs
+- Thresholds: 95% requests < 2s, 99% < 3s
+- Error rate < 5%
+- Automatic cleanup with teardown function
+
+**Stress Test** (`stress-test-usuarios.js`):
+- Gradual increase to 1000 VUs over 15 minutes
+- Tests system limits
+
+**Spike Test** (`spike-test-usuarios.js`):
+- Sudden load spikes to test recovery
+- 0 → 500 → 1000 VUs instantly
+
+**Soak Test** (`soak-test-usuarios.js`):
+- Sustained load for 30 minutes
+- Tests memory leaks and degradation
+
 ### Accessing Configuration
 
 ```javascript
-// In test files
+// In Cypress test files
 const apiUrl = Cypress.expose('apiUrl')
+
+// In K6 test files
+const BASE_URL = 'https://serverest.dev'
 ```
 
 ---
@@ -559,6 +689,34 @@ const apiUrl = Cypress.expose('apiUrl')
 | `mochawesome` | ^8.1.1 | HTML test reporter |
 | `mochawesome-merge` | ^5.1.1 | Merge multiple JSON reports |
 | `mochawesome-report-generator` | ^6.3.2 | Generate HTML from merged JSON |
+
+### Performance Testing
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| [k6](https://k6.io/) | Latest | Load/performance testing tool |
+
+**Installation:**
+```bash
+# macOS
+brew install k6
+
+# Windows (Chocolatey)
+choco install k6
+
+# Windows (Manual)
+# Download from https://k6.io/docs/get-started/installation/
+
+# Linux (Debian/Ubuntu)
+sudo gpg -k
+sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+  --keyserver hkp://keyserver.ubuntu.com:80 \
+  --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | \
+  sudo tee /etc/apt/sources.list.d/k6.list
+sudo apt-get update
+sudo apt-get install k6
+```
 
 ### Installing Missing Dependencies
 
@@ -706,6 +864,13 @@ npx eslint cypress --fix                 # Auto-fix issues
 npm run report:merge                     # Merge JSON reports
 npm run report:generate                  # Generate HTML report
 
+# Performance Testing - K6
+k6 run --vus 50 --duration 1m k6/tests/load-test-usuarios.js  # Smoke test
+k6 run k6/tests/load-test-usuarios.js                          # Full load test
+k6 run k6/tests/stress-test-usuarios.js                        # Stress test
+k6 run k6/tests/spike-test-usuarios.js                         # Spike test
+k6 run k6/tests/soak-test-usuarios.js                          # Soak test
+
 # CI/CD
 gh workflow view                         # View workflow status
 gh run list                              # List recent runs
@@ -740,6 +905,31 @@ npx cypress verify
 npm install --save-dev mochawesome mochawesome-merge mochawesome-report-generator
 ```
 
+**Issue: K6 not found**
+```bash
+# Install K6 first (see installation instructions above)
+k6 version
+
+# macOS: ensure Homebrew is updated
+brew update && brew install k6
+```
+
+**Issue: LoadTest users accumulating in ServeRest**
+```bash
+# Run the cleanup test
+npx cypress run --spec "cypress/e2e/api/usuarios/cleanupLoadTestUsers.cy.js"
+
+# Or use K6 with automatic cleanup (teardown function runs automatically)
+k6 run --vus 50 --duration 1m k6/tests/load-test-usuarios.js
+```
+
+**Issue: CI reports showing "⚠️ Relatório indisponível"**
+```bash
+# Ensure reportDir matches CI expectations
+# Should be: reportDir: 'cypress/reports/mocha/.jsons'
+# Check cypress.config.js reporterOptions
+```
+
 ---
 
 ## 📊 Test Results
@@ -768,6 +958,13 @@ npm install --save-dev mochawesome mochawesome-merge mochawesome-report-generato
 - ✅ signUp.feature: 5 passing
 - ✅ search.feature: 2 passing
 
+**Performance Tests (K6):**
+- ✅ Load Test: 500 VUs sustained, <2s p95, <5% errors
+- ✅ Stress Test: System handles 1000 VUs gracefully
+- ✅ Spike Test: Quick recovery from load spikes
+- ✅ Soak Test: No memory leaks over 30 minutes
+- ✅ Automatic cleanup: Teardown removes all LoadTest users
+
 ---
 
 ## 📝 Notes
@@ -788,10 +985,12 @@ npm install --save-dev mochawesome mochawesome-merge mochawesome-report-generato
 - [ ] Add boundary and edge case tests (invalid emails, special characters)
 - [ ] Implement TypeScript for type safety
 - [ ] Add visual regression testing for front-end
-- [ ] Add performance/load testing
+- [x] ~~Add performance/load testing~~ ✅ **Completed with K6**
 - [ ] Add accessibility testing (cypress-axe)
-- [ ] Implement parallel test execution
+- [ ] Implement parallel Cypress test execution (sharding)
 - [ ] Add tagging strategy for Cucumber scenarios (@smoke, @regression)
+- [ ] Integrate K6 performance tests into PR checks with lower thresholds
+- [ ] Add distributed tracing for performance debugging
 
 ---
 
