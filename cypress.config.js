@@ -6,10 +6,11 @@ const { createEsbuildPlugin } = require('@badeball/cypress-cucumber-preprocessor
 module.exports = defineConfig({
   reporter: 'mochawesome',
   reporterOptions: {
-    reportDir: 'cypress/reports/mocha',
-    quite: true,
+    reportDir: 'cypress/reports/mocha/.jsons',
+    reportFilename: '[name]',
+    quiet: true,
     overwrite: false,
-    html: true,
+    html: false,
     json: true,
   },
   retries: {
