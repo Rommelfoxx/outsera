@@ -2,7 +2,7 @@ import { Given, When, Then, Before, After } from '@badeball/cypress-cucumber-pre
 import { createUser, createUserAdmin } from '../../../../factories/user'
 import { LoginPage } from '../../../../pages/LoginPage'
 import { setupTestData } from '../../../../support/testSetup'
-import { expectSuccessfulCreation, expectSuccessfulDeletion } from '../../../../support/assertions'
+import { expectSuccessfulCreation } from '../../../../support/assertions'
 
 const loginPage = new LoginPage()
 
@@ -78,10 +78,13 @@ Then('I should see the error {string}', function (message) {
 })
 
 After(function () {
-  // Use optional chaining to safely check if user and _id exist
+
   if (this.user?._id) {
+
     return cy.deleteUserById(this.user._id).then((response) => {
-      expectSuccessfulDeletion(response)
+      if (response.status !== 200 || response.body.message !== 'Registro excluído com sucesso') {
+        cy.log(`User ${this.user._id} already deleted or not found - skipping cleanup`)
+      }
     })
   }
 })

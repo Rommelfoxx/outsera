@@ -97,9 +97,7 @@ describe('GET /usuarios', () => {
                         _id: user._id
                     })
                 })
-
         })
-
         const filters = [
 
             { field: '_id', value: () => user._id },
