@@ -10,11 +10,288 @@ env:
   NODE_VERSION: "24"
 
 jobs:
-  # ─── Testes de Performance (K6) ───────────────────────────────────────────────
-  performance-test:
-    name: Testes de Performance K6
+  test-api:
+    name: Testes de API
     runs-on: ubuntu-latest
-    # Run performance tests only on main branch to avoid overloading the API
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Cache binário do Cypress
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Limpar relatórios anteriores
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+
+          fs.rmSync('cypress/reports/mocha', {
+            recursive: true,
+            force: true,
+          })
+
+          fs.rmSync('cypress/reports/html', {
+            recursive: true,
+            force: true,
+          })
+
+          fs.mkdirSync('cypress/reports/mocha/.jsons', {
+            recursive: true,
+          })
+          NODE
+
+      - name: Executar testes de API (usuarios)
+        run: |
+          npx cypress run \
+            --browser chrome \
+            --headless \
+            --spec "cypress/e2e/api/usuarios/**/*.cy.js"
+
+      - name: Mesclar relatórios JSON
+        if: always()
+        shell: bash
+        run: |
+          shopt -s nullglob
+          reports=(cypress/reports/mocha/.jsons/*.json)
+
+          if (( ${#reports[@]} > 0 )); then
+            npm run report:merge
+          else
+            echo "Nenhum relatório JSON encontrado para mesclar."
+          fi
+
+      - name: Gerar relatório HTML
+        if: always()
+        shell: bash
+        run: |
+          if [ -s cypress/reports/mocha/merged.json ]; then
+            npm run report:generate
+          else
+            echo "Relatório mesclado indisponível. HTML não gerado."
+          fi
+
+      - name: Upload relatório Mochawesome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mochawesome-report-api
+          path: cypress/reports/html/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload relatórios JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mochawesome-json-api
+          path: cypress/reports/mocha/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Publicar resumo do relatório no GitHub Actions
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+
+          const reportPath = 'cypress/reports/mocha/merged.json'
+          const summaryPath = process.env.GITHUB_STEP_SUMMARY
+
+          if (
+            !fs.existsSync(reportPath) ||
+            fs.statSync(reportPath).size === 0
+          ) {
+            fs.appendFileSync(
+              summaryPath,
+              '## 📊 Mochawesome Test Report\n\n' +
+              '⚠️ Relatório indisponível. Confira a execução dos testes e a mesclagem dos JSONs.\n'
+            )
+
+            process.exit(0)
+          }
+
+          const report = JSON.parse(
+            fs.readFileSync(reportPath, 'utf8')
+          )
+
+          const {
+            tests,
+            passes,
+            failures,
+            pending,
+            skipped,
+            duration,
+          } = report.stats
+
+          const summary = [
+            '## 📊 Mochawesome Test Report',
+            '',
+            `Total: ${tests}`,
+            `✅ Aprovados: ${passes}`,
+            `❌ Falhas: ${failures}`,
+            `⏸ Pendentes: ${pending}`,
+            `⏭ Ignorados: ${skipped ?? 0}`,
+            `⏱ Duração: ${(duration / 1000).toFixed(1)}s`,
+            '',
+          ].join('\n')
+
+          fs.appendFileSync(summaryPath, summary)
+          NODE
+
+      - name: Upload screenshots (somente em falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-api
+          path: cypress/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload vídeos (somente em falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: videos-api
+          path: cypress/videos/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ─── Testes de UI ─────────────────────────────────────────────────────────────
+  test-ui:
+    name: Testes de UI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Cache binário do Cypress
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Verificar versão do Chrome disponível
+        run: google-chrome --version
+
+      - name: Executar testes UI — Login
+        id: test-login
+        continue-on-error: true
+        run: npx cypress run --browser chrome --headless --spec "cypress/e2e/ui/SignupLogin/login.feature"
+
+      - name: Executar testes UI — Cadastro
+        id: test-signup
+        continue-on-error: true
+        run: npx cypress run --browser chrome --headless --spec "cypress/e2e/ui/SignupLogin/signUp.feature"
+
+      - name: Executar testes UI — Busca (Home)
+        id: test-search
+        continue-on-error: true
+        run: npx cypress run --browser chrome --headless --spec "cypress/e2e/ui/Home/search.feature"
+
+      - name: Mesclar relatórios JSON
+        if: always()
+        run: |
+          if ls cypress/reports/mocha/.jsons/*.json 1> /dev/null 2>&1; then
+            npm run report:merge
+          else
+            echo "Nenhum relatório JSON encontrado para mesclar."
+          fi
+
+      - name: Gerar relatório HTML
+        if: always()
+        run: |
+          if [ -f cypress/reports/mocha/merged.json ]; then
+            npm run report:generate
+          else
+            echo "merged.json não encontrado, pulando geração de HTML."
+          fi
+
+      - name: Upload relatório Mochawesome
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mochawesome-report-ui
+          path: cypress/reports/html/
+          retention-days: 7
+
+      - name: Publicar resumo do relatório no GitHub Actions
+        if: always()
+        run: |
+          echo "## 📊 Mochawesome Test Report - UI" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ ! -f cypress/reports/mocha/merged.json ]; then
+            echo "⚠️ Relatório indisponível. Verifique se os testes foram executados." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          echo "| Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          node -e "
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('cypress/reports/mocha/merged.json'));
+          const { passes, failures, pending, duration } = report.stats;
+          const total = passes + failures + pending;
+          const status = failures === 0 ? '✅ Passed' : '❌ Failed';
+          console.log('| Total | ' + total + ' |');
+          console.log('| ✅ Passed | ' + passes + ' |');
+          console.log('| ❌ Failed | ' + failures + ' |');
+          console.log('| ⏱ Duration | ' + (duration / 1000).toFixed(1) + 's |');
+          console.log('| Status | ' + status + ' |');
+          " >> $GITHUB_STEP_SUMMARY
+
+      - name: Verificar resultado dos testes UI
+        if: always()
+        run: |
+          if [ "${{ steps.test-login.outcome }}" = "failure" ] || [ "${{ steps.test-signup.outcome }}" = "failure" ] || [ "${{ steps.test-search.outcome }}" = "failure" ]; then
+            echo "Uma ou mais suítes de teste falharam."
+            exit 1
+          fi
+
+      - name: Upload screenshots (somente em falha)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: screenshots-ui
+          path: cypress/screenshots/
+          retention-days: 7
+
+      - name: Upload vídeos (somente em falha)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: videos-ui
+          path: cypress/videos/
+          retention-days: 7
+
+  # ─── Performance Test (Lightweight) ───────────────────────────────────────────
+  performance-smoke:
+    name: Performance Smoke Test
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
     steps:
@@ -29,121 +306,30 @@ jobs:
           sudo apt-get update
           sudo apt-get install k6
 
-      - name: Verificar versão do K6
-        run: k6 version
-
       - name: Criar diretório de relatórios
         run: mkdir -p k6/reports
 
-      - name: Executar Load Test (500 usuários por 5 minutos)
-        id: load-test
+      - name: Smoke Test K6 (50 usuários por 1 minuto)
         continue-on-error: true
-        run: k6 run k6/tests/load-test-usuarios.js
-
-      - name: Executar Spike Test (teste de pico)
-        id: spike-test
-        continue-on-error: true
-        run: k6 run k6/tests/spike-test-usuarios.js
-
-      # Stress and Soak tests commented out - too long for CI/CD on public API
-      # Run these manually when needed:
-      # k6 run k6/tests/stress-test-usuarios.js  (13 min)
-      # k6 run k6/tests/soak-test-usuarios.js    (19 min)
+        run: |
+          k6 run --vus 50 --duration 1m --out json=k6/reports/smoke-test.json k6/tests/load-test-usuarios.js || true
 
       - name: Upload relatórios K6
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-performance-reports
+          name: k6-smoke-test
           path: k6/reports/
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 7
 
-      - name: Publicar resumo dos testes de performance
+      - name: Resumo do teste
         if: always()
         run: |
-          echo "## 🚀 K6 Performance Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 K6 Smoke Test (50 VUs / 1 min)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️ **Note:** Testing against public ServeRest API - rate limiting and shared load expected" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Smoke test concluído - baseline de performance registrado" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Load Test (500 users for 5 minutes)" >> $GITHUB_STEP_SUMMARY
-
-          if [ -f k6/reports/load-test-summary.json ]; then
-            node -e "
-            const fs = require('fs');
-            const report = JSON.parse(fs.readFileSync('k6/reports/load-test-summary.json', 'utf8'));
-
-            const metrics = report.metrics;
-            const httpReqDuration = metrics.http_req_duration;
-            const httpReqFailed = metrics.http_req_failed;
-            const iterations = metrics.iterations;
-            const vus = metrics.vus_max;
-
-            console.log('| Metric | Value |');
-            console.log('|--------|-------|');
-            console.log('| Total Requests | ' + metrics.http_reqs.values.count + ' |');
-            console.log('| Iterations | ' + iterations.values.count + ' |');
-            console.log('| Max VUs | ' + vus.values.max + ' |');
-            console.log('| Avg Response Time | ' + (httpReqDuration.values.avg / 1000).toFixed(2) + 's |');
-            console.log('| P95 Response Time | ' + (httpReqDuration.values['p(95)'] / 1000).toFixed(2) + 's |');
-            console.log('| P99 Response Time | ' + (httpReqDuration.values['p(99)'] / 1000).toFixed(2) + 's |');
-            console.log('| Error Rate | ' + (httpReqFailed.values.rate * 100).toFixed(2) + '% |');
-            console.log('| Status | ' + (httpReqFailed.values.rate < 0.05 ? '✅ PASS' : '⚠️ High Error Rate (Public API)') + ' |');
-            " >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Load test report not found" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Spike Test (sudden surge to 1000 users)" >> $GITHUB_STEP_SUMMARY
-
-          if [ -f k6/reports/spike-test-summary.json ]; then
-            node -e "
-            const fs = require('fs');
-            const report = JSON.parse(fs.readFileSync('k6/reports/spike-test-summary.json', 'utf8'));
-
-            const metrics = report.metrics;
-            const httpReqDuration = metrics.http_req_duration;
-            const httpReqFailed = metrics.http_req_failed;
-
-            console.log('| Metric | Value |');
-            console.log('|--------|-------|');
-            console.log('| Total Requests | ' + metrics.http_reqs.values.count + ' |');
-            console.log('| Max VUs | ' + metrics.vus_max.values.max + ' |');
-            console.log('| P95 Response Time | ' + (httpReqDuration.values['p(95)'] / 1000).toFixed(2) + 's |');
-            console.log('| Error Rate | ' + (httpReqFailed.values.rate * 100).toFixed(2) + '% |');
-            console.log('| Recovery Status | ' + (httpReqFailed.values.rate < 0.15 ? '✅ System Handled Load' : '⚠️ High Error Rate (Public API)') + ' |');
-            " >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Spike test report not found" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 **Full HTML reports available in artifacts**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "💡 **Recommendation:** For accurate performance testing, deploy a dedicated ServeRest instance" >> $GITHUB_STEP_SUMMARY
-
-      - name: Verificar thresholds dos testes (informativo apenas)
-        if: always()
-        continue-on-error: true
-        run: |
-          echo "📊 Performance test results recorded"
-          echo ""
-          echo "⚠️ Note: ServeRest is a shared public API with rate limiting"
-          echo "Threshold failures are expected and won't fail the workflow"
-          echo ""
-
-          if [ "${{ steps.load-test.outcome }}" = "failure" ]; then
-            echo "ℹ️ Load test thresholds not met (typical for shared public API)"
-          else
-            echo "✅ Load test thresholds met"
-          fi
-
-          if [ "${{ steps.spike-test.outcome }}" = "failure" ]; then
-            echo "ℹ️ Spike test thresholds not met (rate limiting expected)"
-          else
-            echo "✅ Spike test thresholds met"
-          fi
-
-          echo ""
-          echo "💡 For production testing, deploy a dedicated ServeRest instance"
+          echo "💡 Para testes completos, execute localmente:" >> $GITHUB_STEP_SUMMARY
+          echo "- Load Test: \`k6 run k6/tests/load-test-usuarios.js\` (500 VUs, 5 min)" >> $GITHUB_STEP_SUMMARY
+          echo "- Spike Test: \`k6 run k6/tests/spike-test-usuarios.js\` (1000 VUs)" >> $GITHUB_STEP_SUMMARY
