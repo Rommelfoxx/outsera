@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Allow parallel jobs to complete independently
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   NODE_VERSION: "24"
 
@@ -293,7 +298,11 @@ jobs:
     name: Performance Smoke Test
     runs-on: ubuntu-latest
     needs: [test-api, test-ui]
-    if: github.ref == 'refs/heads/main'
+    # Only run if both API and UI tests succeed
+    if: |
+      github.ref == 'refs/heads/main' &&
+      needs.test-api.result == 'success' &&
+      needs.test-ui.result == 'success'
 
     steps:
       - name: Checkout do código
