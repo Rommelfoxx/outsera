@@ -181,6 +181,59 @@ export default function () {
   sleep(2) // Think time before next iteration
 }
 
+// Teardown function - runs once after all VUs complete
+export function teardown(data) {
+  console.log('🧹 Starting cleanup of remaining LoadTest users...')
+
+  // Get all users
+  const getUsersResponse = http.get(`${BASE_URL}/usuarios`)
+
+  if (getUsersResponse.status !== 200) {
+    console.log('⚠️ Could not fetch users for cleanup')
+    return
+  }
+
+  let users
+  try {
+    users = JSON.parse(getUsersResponse.body).usuarios
+  } catch (e) {
+    console.log('⚠️ Could not parse users response')
+    return
+  }
+
+  // Filter LoadTest users
+  const loadTestUsers = users.filter(user =>
+    user.nome && user.nome.includes('LoadTest User')
+  )
+
+  console.log(`Found ${loadTestUsers.length} LoadTest users to clean up`)
+
+  if (loadTestUsers.length === 0) {
+    console.log('✅ No LoadTest users found - cleanup complete')
+    return
+  }
+
+  // Delete each LoadTest user
+  let deletedCount = 0
+  let failedCount = 0
+
+  loadTestUsers.forEach(user => {
+    const deleteResponse = http.del(`${BASE_URL}/usuarios/${user._id}`)
+
+    if (deleteResponse.status === 200) {
+      deletedCount++
+      console.log(`✅ Deleted: ${user.nome}`)
+    } else {
+      failedCount++
+      console.log(`⚠️ Failed to delete: ${user.nome} (${user._id})`)
+    }
+
+    sleep(0.1) // Small delay to avoid rate limiting
+  })
+
+  console.log(`🧹 Cleanup complete: ${deletedCount} deleted, ${failedCount} failed`)
+}
+
 // Generate HTML and JSON reports
 export function handleSummary(data) {
   return {
