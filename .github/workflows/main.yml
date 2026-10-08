@@ -272,9 +272,20 @@ jobs:
       - name: Verificar resultado dos testes UI
         if: always()
         run: |
-          if [ "${{ steps.test-login.outcome }}" = "failure" ] || [ "${{ steps.test-signup.outcome }}" = "failure" ] || [ "${{ steps.test-search.outcome }}" = "failure" ]; then
-            echo "Uma ou mais suítes de teste falharam."
+          LOGIN_RESULT="${{ steps.test-login.outcome }}"
+          SIGNUP_RESULT="${{ steps.test-signup.outcome }}"
+          SEARCH_RESULT="${{ steps.test-search.outcome }}"
+
+          echo "Resultados dos testes:"
+          echo "  Login: $LOGIN_RESULT"
+          echo "  Signup: $SIGNUP_RESULT"
+          echo "  Search: $SEARCH_RESULT"
+
+          if [ "$LOGIN_RESULT" = "failure" ] || [ "$SIGNUP_RESULT" = "failure" ] || [ "$SEARCH_RESULT" = "failure" ]; then
+            echo "❌ Uma ou mais suítes de teste falharam."
             exit 1
+          else
+            echo "✅ Todos os testes UI passaram com sucesso!"
           fi
 
       - name: Upload screenshots (somente em falha)
