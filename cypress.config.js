@@ -4,7 +4,7 @@ const { addCucumberPreprocessorPlugin } = require('@badeball/cypress-cucumber-pr
 const { createEsbuildPlugin } = require('@badeball/cypress-cucumber-preprocessor/esbuild')
 const getEnvironment = require('./config/environments')
 
-const environment = process.env.CYPRESS_ENV || process.env.NODE_ENV || 'production'
+const environment = process.env.CYPRESS_ENV || 'production'
 const envConfig = getEnvironment(environment)
 
 module.exports = defineConfig({
@@ -40,9 +40,9 @@ module.exports = defineConfig({
       'cypress/e2e/**/*.cy.js',
       'cypress/e2e/**/*.feature'
     ],
-    baseUrl: envConfig.baseUrl,
+    baseUrl: process.env.BASE_URL || envConfig.baseUrl,
     expose: {
-      apiUrl: envConfig.apiUrl
+      apiUrl: process.env.API_URL || envConfig.apiUrl
     },
     env: {
       environment: environment

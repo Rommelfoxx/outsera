@@ -58,12 +58,16 @@ Then('I should see the error {string}', function (message) {
 })
 
 After(function () {
-
-  if (this.user?._id) {
-    return cy.deleteUserById(this.user._id).then((response) => {
-      if (response.status !== 200 || response.body.message !== 'Registro excluído com sucesso') {
-        cy.log(`User ${this.user._id} already deleted or not found - skipping cleanup`)
-      }
+  if (this.user?._id && this.userAdmin?._id) {
+    // Both users exist - delete them sequentially
+    return cy.deleteUserById(this.user._id).then(() => {
+      return cy.deleteUserById(this.userAdmin._id)
     })
+  } else if (this.user?._id) {
+    // Only regular user exists
+    return cy.deleteUserById(this.user._id)
+  } else if (this.userAdmin?._id) {
+    // Only admin user exists
+    return cy.deleteUserById(this.userAdmin._id)
   }
 })

@@ -10,6 +10,7 @@
     "@faker-js/faker": "^10.6.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "cross-env": "^10.1.0",
     "cypress-cucumber-preprocessor": "^4.3.1",
     "eslint": "^10.12.0",
     "eslint-plugin-cypress": "^7.0.2",
@@ -26,15 +27,17 @@
     "db": "node scripts/init_db.js",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
-    "cypress:qa": "CYPRESS_ENV=qa cypress run",
-    "cypress:staging": "CYPRESS_ENV=staging cypress run",
-    "cypress:prod": "CYPRESS_ENV=production cypress run",
+    "cypress:qa": "cross-env CYPRESS_ENV=qa cypress run",
+    "cypress:staging": "cross-env CYPRESS_ENV=staging cypress run",
+    "cypress:prod": "cross-env CYPRESS_ENV=production cypress run",
     "cypress:api": "cypress run --spec 'cypress/e2e/api/**/*.cy.js'",
-    "cypress:api:qa": "CYPRESS_ENV=qa npm run cypress:api",
+    "cypress:api:qa": "cross-env CYPRESS_ENV=qa npm run cypress:api",
     "cypress:ui": "cypress run --spec 'cypress/e2e/ui/**/*.feature'",
-    "cypress:ui:dev": "CYPRESS_ENV=dev npm run cypress:ui",
-    "cypress:ui:qa": "CYPRESS_ENV=qa npm run cypress:ui",
+    "cypress:ui:qa": "cross-env CYPRESS_ENV=qa npm run cypress:ui",
+    "report:clean": "node -e \"const fs=require('fs');['mocha','html'].forEach(d=>fs.rmSync('cypress/reports/'+d,{recursive:true,force:true}))\"",
     "report:merge": "mochawesome-merge cypress/reports/mocha/.jsons/*.json -o cypress/reports/mocha/merged.json",
-    "report:generate": "marge cypress/reports/mocha/merged.json -o cypress/reports/html"
+    "report:generate": "marge cypress/reports/mocha/merged.json -o cypress/reports/html -f index",
+    "report": "npm run report:merge && npm run report:generate",
+    "report:open": "npm run report && node scripts/open-report.js"
   }
 }
