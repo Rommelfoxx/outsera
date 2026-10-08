@@ -20,14 +20,12 @@ Given('I have a registered {string}', function (userType) {
   const user = userType === 'AdminUser' ? this.userAdmin : this.user
   return setupTestData.createUserViaAPI(user)
     .then((response) => {
-      this.user._id = expectSuccessfulCreation(response)
+      user._id = expectSuccessfulCreation(response)
     })
 })
 
 When('I fill the login form with valid {string} credentials', function (userType) {
   const user = userType === 'AdminUser' ? this.userAdmin : this.user
-  loginPage.emailInput.clear()
-  loginPage.passwordInput.clear()
   loginPage.fillCredentials({ email: user.email, password: user.password })
 })
 
@@ -62,7 +60,6 @@ Then('I should see the error {string}', function (message) {
 After(function () {
 
   if (this.user?._id) {
-
     return cy.deleteUserById(this.user._id).then((response) => {
       if (response.status !== 200 || response.body.message !== 'Registro excluído com sucesso') {
         cy.log(`User ${this.user._id} already deleted or not found - skipping cleanup`)
