@@ -2,8 +2,16 @@
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import userSchema from './schemas/userSchema.json'
+import { UserService } from '../api/services/UserService'
+import { ProductService } from './services/ProductService'
+import { LoginService } from './services/LoginService'
+
+
 
 const apiUrl = Cypress.expose('apiUrl')
+const userService = new UserService()
+const loginService = new LoginService()
+const productService = new ProductService()
 
 const ajv = new Ajv()
 addFormats(ajv)
@@ -15,94 +23,59 @@ Cypress.Commands.add('validateUserSchema', (user) => {
     if (!valid) {
         console.error('Schema validation errors:', validateUser.errors)
     }
-
     expect(valid, 'User schema validation').to.be.true
 })
 //Log in through the API
 Cypress.Commands.add('loginApi', (email, password) => {
-    return cy.request({
-        method: 'POST',
-        url: `${apiUrl}/login`,
-        body: {
-            email,
-            password
-        }
-    }).then((response) => {
-
-        return response.body.authorization
-    })
+    loginService.create(
+        email,
+        password
+    )
+        .then((response) => {
+            return response.body.authorization
+        })
 })
 Cypress.Commands.add('createUser', (user) => {
-    return cy.request({
-        method: 'POST',
-        url: `${apiUrl}/usuarios`,
-        body: {
-            nome: user.nome,
-            email: user.email,
-            password: user.password,
-            administrador: user.administrador
-        }
-    })
+    return userService.create(user)
 })
+
 //Delete a user by ID
 Cypress.Commands.add('deleteUserById', (id) => {
-    return cy.request({
-        method: 'DELETE',
-        url: `${apiUrl}/usuarios/${id}`,
-    })
+
+    return userService.delete(id)
 })
 
 //Search for a user by ID
 Cypress.Commands.add('searchUserById', (userId) => {
-    return cy.request({
-        method: 'GET',
-        url: `${apiUrl}/usuarios`,
-        qs: {
-            _id: userId
-        }
-    })
+    return userService.getAll({ _id: userId })
 })
 
 Cypress.Commands.add('criarProduto', (email, password, product) => {
-
+    const productCreate = {
+        nome: product.nome,
+        preco: product.preco,
+        descricao: product.descricao,
+        quantidade: product.quantidade
+    }
     return cy.loginApi(email, password)
         .then((auth) => {
-
-            return cy.request({
-                method: 'POST',
-                url: `${apiUrl}/produtos`,
-                headers: { 'authorization': auth },
-                body: {
-                    nome: product.nome,
-                    preco: product.preco,
-                    descricao: product.descricao,
-                    quantidade: product.quantidade
-                }
-            }).then((response) => {
-
-                expect(response.status)
-                    .to.eq(201)
-
-                return response
-            })
+            productService.create(productCreate, auth)
+                .then((response) => {
+                    expect(response.status)
+                        .to.eq(201)
+                    return response
+                })
         })
 })
 
 Cypress.Commands.add('excluirProduto', (email, password, id) => {
-    cy.loginApi(email, password)
+    return cy.loginApi(email, password)
         .then((auth) => {
-
-            return cy.request({
-                method: 'DELETE',
-                headers: { 'authorization': auth },
-                url: `${apiUrl}/produtos/${id}`
-            }).then((response) => {
-
-                expect(response.status)
-                    .to.eq(200)
-
-                return response
-            })
+            return productService.delete(id, auth)
+                .then((response) => {
+                    expect(response.status).to.eq(200)
+                    return response
+                })
         })
 })
 
