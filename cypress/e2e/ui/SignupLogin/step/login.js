@@ -16,50 +16,32 @@ Given('I am on the login page', function () {
   return loginPage.shouldBeOnLoginPage()
 })
 
-Given('I have a registered user', function () {
-  return setupTestData.createUserViaAPI(this.user)
+Given('I have a registered {string}', function (userType) {
+  const user = userType === 'AdminUser' ? this.userAdmin : this.user
+  return setupTestData.createUserViaAPI(user)
     .then((response) => {
       this.user._id = expectSuccessfulCreation(response)
     })
 })
 
-Given('I have a registered AdminUser', function () {
-  return setupTestData.createUserViaAPI(this.userAdmin)
-    .then((response) => {
-      this.user._id = expectSuccessfulCreation(response)
-    })
-})
-
-When('I fill the login form with valid credentials', function () {
+When('I fill the login form with valid {string} credentials', function (userType) {
+  const user = userType === 'AdminUser' ? this.userAdmin : this.user
   loginPage.emailInput.clear()
   loginPage.passwordInput.clear()
-  loginPage.fillCredentials({ email: this.user.email, password: this.user.password })
+  loginPage.fillCredentials({ email: user.email, password: user.password })
 })
 
-When('I fill the login form with valid Admin credentials', function () {
-  loginPage.emailInput.clear()
-  loginPage.passwordInput.clear()
-  loginPage.fillCredentials({ email: this.userAdmin.email, password: this.userAdmin.password })
-})
-When('I fill the email with valid email', function () {
-  loginPage.emailInput.clear()
-  loginPage.emailInput.type(this.user.email)
-})
-
-When('I fill the email with {string}', function (email) {
-  if (email) {
+When('I fill the email with {string} email', function (emailInput) {
+  if (emailInput) {
     loginPage.emailInput.clear()
+    const email = emailInput === 'valid' ? this.user.email : emailInput
     loginPage.emailInput.type(email)
   }
 })
 
-When('I fill the password with valid password', function () {
-  loginPage.passwordInput.clear()
-  loginPage.passwordInput.type(this.user.password)
-})
-
-When('I fill the password with {string}', function (password) {
-  if (password) {
+When('I fill the password with {string} password', function (passwordInput) {
+  if (passwordInput) {
+    const password = passwordInput === 'valid' ? this.user.password : passwordInput
     loginPage.passwordInput.clear()
     loginPage.passwordInput.type(password)
   }
