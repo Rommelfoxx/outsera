@@ -1,11 +1,13 @@
+import { ROUTES } from '../support/constants'
 
+const apiUrl = Cypress.expose('apiUrl')
 
 
 //Login in the aplication using session
 Cypress.Commands.add('loginSession', ({ email, password } = {}) => {
   cy.session(['user', email], () => {
-    cy.visit('/login')
-    cy.intercept('POST', 'https://serverest.dev/login').as('login')
+    cy.visit(ROUTES.LOGIN)
+    cy.intercept('POST', `${apiUrl}${ROUTES.LOGIN}`).as('login')
     cy.get('[data-testid="email"]').should("be.visible").type(email)
     cy.get('[data-testid="senha"]').should('be.visible').type(password)
     cy.get('[data-testid="entrar"]').should('be.visible').click()

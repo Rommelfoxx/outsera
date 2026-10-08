@@ -2,9 +2,11 @@ import { Given, When, Then, Before, After } from '@badeball/cypress-cucumber-pre
 import { createUser, createUserAdmin } from '../../../../factories/user'
 import productFactory from '../../../../factories/product'
 import { HomePage } from '../../../../pages/HomePage'
+// import { ROUTES } from '../../../../support/'
 
 const { createProduct } = productFactory
 const homePage = new HomePage()
+const apiUrl = Cypress.expose('apiUrl')
 
 Before(function () {
   this.userAdmin = createUserAdmin()
@@ -37,12 +39,12 @@ Given('I am on the home page', function () {
 })
 
 When('I search for the created product', function () {
-  cy.intercept('GET', 'https://serverest.dev/produtos*').as('consulta')
+  cy.intercept('GET', `${apiUrl}/produtos*`).as('consulta')
   homePage.searchForProduct(this.product.nome)
 })
 
 When('I search for {string}', function (searchTerm) {
-  cy.intercept('GET', 'https://serverest.dev/produtos*', {
+  cy.intercept('GET', `${apiUrl}/produtos*`, {
     fixture: 'productTest.json'
   }).as('consulta')
 
@@ -79,14 +81,23 @@ After(function () {
   // Product deletion requires admin authentication
   if (this.productID && this.userAdmin?.email && this.userAdmin?.password) {
     cy.excluirProduto(this.userAdmin.email, this.userAdmin.password, this.productID)
-  }
-
-  // Now delete users (after product is deleted)
-  if (this.user?.nome) {
-    cy.apagarUsuario(this.user.nome)
-  }
-  if (this.userAdmin?.nome) {
-    cy.apagarUsuario(this.userAdmin.nome)
+      .then(() => {
+        // Only delete users after product deletion completes
+        if (this.user?.nome) {
+          cy.apagarUsuario(this.user.nome)
+        }
+        if (this.userAdmin?.nome) {
+          cy.apagarUsuario(this.userAdmin.nome)
+        }
+      })
+  } else {
+    // No product to delete, clean up users only
+    if (this.user?.nome) {
+      cy.apagarUsuario(this.user.nome)
+    }
+    if (this.userAdmin?.nome) {
+      cy.apagarUsuario(this.userAdmin.nome)
+    }
   }
 })
 

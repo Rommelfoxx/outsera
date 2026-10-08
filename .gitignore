@@ -13,6 +13,14 @@
 /cypress/videos
 /cypress/downloads
 
+# Environment files
+.env
+.env.local
+cypress.env.json
+
+# Keep example files
+!.env.example
+
 # K6 reports
 /k6/reports
 *.html

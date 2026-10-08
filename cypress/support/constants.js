@@ -3,5 +3,6 @@ export const ROUTES = {
     LOGIN: '/login',
     USUARIOS: '/usuarios',
     CADASTRAR_USUARIOS: '/cadastrarusuarios',
-    ADMIN_HOME: '/admin/home'
+    ADMIN_HOME: '/admin/home',
+    PRODUTOS: '/produtos'
 }

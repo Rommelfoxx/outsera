@@ -23,7 +23,7 @@ export const options = {
   },
 }
 
-const BASE_URL = 'https://serverest.dev'
+const BASE_URL = Cypress.expose('apiUrl')
 
 export default function () {
   // Realistic user journey

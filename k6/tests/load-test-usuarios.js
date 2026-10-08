@@ -35,7 +35,7 @@ export const options = {
   }
 }
 
-const BASE_URL = 'https://serverest.dev'
+const BASE_URL = Cypress.expose('apiUrl')
 
 // Helper function to generate random user data
 function generateUserData() {

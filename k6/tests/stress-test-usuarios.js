@@ -22,8 +22,7 @@ export const options = {
     http_req_failed: ['rate<0.1'],
   },
 }
-
-const BASE_URL = 'https://serverest.dev'
+const BASE_URL = Cypress.expose('apiUrl')
 
 function generateUserData() {
   const timestamp = Date.now()
