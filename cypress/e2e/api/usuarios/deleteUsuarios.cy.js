@@ -1,6 +1,6 @@
-import { UserService } from '../../../services/UserService'
-import { createUser, createUserAdmin } from '../../../factories/user.js'
-import { expectSuccessfulCreation, expectSuccessfulDeletion, expectfailfulSearch, expectfailfulDeletion } from '../../../support/assertions'
+import { UserService } from '../../../support/api/services/UserService'
+import { createUser, createUserAdmin } from '../../../support/shared/factories/user.js'
+import { expectSuccessfulCreation, expectSuccessfulDeletion, expectfailfulSearch, expectfailfulDeletion } from '../../../support/shared/assertions'
 
 describe('DELETE /usuarios', () => {
 

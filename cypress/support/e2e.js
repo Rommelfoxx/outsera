@@ -14,8 +14,8 @@
 // ***********************************************************
 
 // Import commands.js using ES2015 syntax:
-import './commands'
-import './commandsApi'
+import './ui/commands'
+import './api/commandsApi'
 
 
 Cypress.on('log:added', (attrs) => {

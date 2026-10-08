@@ -1,4 +1,4 @@
-import { ROUTES } from '../support/constants'
+import { ROUTES } from '../../shared/constants'
 
 export class UserService {
     constructor() {

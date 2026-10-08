@@ -1,6 +1,6 @@
-import { UserService } from '../../../services/UserService'
-import { createUser, createUserInvalid } from '../../../factories/user.js'
-import { expectSuccessfulCreation, expectfailfulSearch } from '../../../support/assertions'
+import { UserService } from '../../../support/api/services/UserService'
+import { createUser, createUserInvalid } from '../../../support/shared/factories/user.js'
+import { expectSuccessfulCreation, expectfailfulSearch } from '../../../support/shared/assertions'
 
 const userService = new UserService()
 describe('GET /usuarios', () => {

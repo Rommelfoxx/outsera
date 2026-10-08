@@ -1,6 +1,6 @@
-import { UserService } from '../../../services/UserService'
-import { createUser, updatedUser } from '../../../factories/user.js'
-import { expectSuccessfulCreation, expectSuccessfulUpdate } from '../../../support/assertions'
+import { UserService } from '../../../support/api/services/UserService'
+import { createUser, updatedUser } from '../../../support/shared/factories/user.js'
+import { expectSuccessfulCreation, expectSuccessfulUpdate } from '../../../support/shared/assertions'
 
 
 describe('PUT /usuarios', () => {

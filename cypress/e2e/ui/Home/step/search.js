@@ -1,8 +1,8 @@
 import { Given, When, Then, Before, After } from '@badeball/cypress-cucumber-preprocessor'
-import { createUser, createUserAdmin } from '../../../../factories/user'
-import productFactory from '../../../../factories/product'
-import { HomePage } from '../../../../pages/HomePage'
-// import { ROUTES } from '../../../../support/'
+import { createUser, createUserAdmin } from '../../../../support/shared/factories/user'
+import productFactory from '../../../../support/shared/factories/product'
+import { HomePage } from '../../../../support/ui/pages/HomePage'
+
 
 const { createProduct } = productFactory
 const homePage = new HomePage()

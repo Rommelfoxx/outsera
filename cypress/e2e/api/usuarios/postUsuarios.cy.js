@@ -1,6 +1,6 @@
-import { createUser, createUserAdmin } from '../../../factories/user.js'
-import { UserService } from '../../../services/UserService'
-import { expectSuccessfulCreation, expectValidationError, expectEmailAlreadyUsed, expectUserToMatch, expectSuccessfulSearch } from '../../../support/assertions'
+import { createUser, createUserAdmin } from '../../../support/shared/factories/user.js'
+import { UserService } from '../../../support/api/services/UserService.js'
+import { expectSuccessfulCreation, expectValidationError, expectEmailAlreadyUsed, expectUserToMatch, expectSuccessfulSearch } from '../../../support/shared/assertions'
 
 const userService = new UserService()
 

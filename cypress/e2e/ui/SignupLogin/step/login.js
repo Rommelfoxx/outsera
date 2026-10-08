@@ -1,8 +1,8 @@
 import { Given, When, Then, Before, After } from '@badeball/cypress-cucumber-preprocessor'
-import { createUser, createUserAdmin } from '../../../../factories/user'
-import { LoginPage } from '../../../../pages/LoginPage'
-import { setupTestData } from '../../../../support/testSetup'
-import { expectSuccessfulCreation } from '../../../../support/assertions'
+import { createUser, createUserAdmin } from '../../../../support/shared/factories/user'
+import { LoginPage } from '../../../../support/ui/pages/LoginPage'
+import { setupTestData } from '../../../../support/shared/testSetup'
+import { expectSuccessfulCreation } from '../../../../support/shared/assertions'
 
 const loginPage = new LoginPage()
 

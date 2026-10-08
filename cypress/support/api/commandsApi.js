@@ -1,7 +1,7 @@
 
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
-import userSchema from '../schemas/userSchema.json'
+import userSchema from './schemas/userSchema.json'
 
 const apiUrl = Cypress.expose('apiUrl')
 

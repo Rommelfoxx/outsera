@@ -1,6 +1,6 @@
 import { Given, When, Then, Before, After } from '@badeball/cypress-cucumber-preprocessor'
-import { createUser, createUserAdmin } from '../../../../factories/user'
-import { SignupPage } from '../../../../pages/SignupPage'
+import { createUser, createUserAdmin } from '../../../../support/shared/factories/user'
+import { SignupPage } from '../../../../support/ui/pages/SignupPage'
 
 const signupPage = new SignupPage()
 
